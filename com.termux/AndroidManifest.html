@@ -38,6 +38,11 @@
         }
 
         .command {
+            margin-top: 0;
+        }
+
+        /* Espace entre le texte d'accueil et le premier prompt, avant toute commande */
+        #welcome:not([hidden]) + #log:empty + .command {
             margin-top: 20px;
         }
 
@@ -103,10 +108,7 @@ try 'termux-change-repo' command.
 Report issues at:
 https://termux.dev/issues
 
-</div><div id="log"></div>
-<div class="command" id="prompt">~$<input id="commandInput" value="wayland --start" autofocus autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal command"></div>
-
-</div>
+</div><div id="log"></div><div class="command" id="prompt">~$<input id="commandInput" value="wayland --start" autofocus autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal command"></div></div>
 
 <button id="ctrlc" hidden>CTRL+C</button>
 <script>
@@ -168,6 +170,7 @@ https://termux.dev/issues
     function clearScreen() {
         log.textContent = "";
         welcome.hidden = true;
+        window.scrollTo(0, 0);
     }
 
     function print(text) {
