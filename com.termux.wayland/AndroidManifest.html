@@ -61,6 +61,26 @@
             object-fit: contain;
         }
 
+        /* Sans fenêtres libres : affichage des applications comme dans Termux:X11
+           (pas de gestionnaire de fenêtres : chaque fenêtre apparaît en haut à gauche, la dernière lancée au-dessus) */
+        #xdisplay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+        #xdisplay img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            pointer-events: auto;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
         [hidden] { display: none !important; }
 
         #toast {
@@ -96,6 +116,8 @@
         <button class="icon" data-app="editor"><img src="../com.termux/text-editor.png" alt="">Éditeur de texte</button>
     </main>
 
+    <div id="xdisplay" hidden></div>
+
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script>
@@ -105,6 +127,7 @@
         var embedded = window.parent !== window;
         var nosession = document.getElementById("nosession");
         var desktop = document.getElementById("desktop");
+        var xdisplay = document.getElementById("xdisplay");
         var toast = document.getElementById("toast");
         var toastTimer = null;
         var nextId = 1;
@@ -117,16 +140,44 @@
             toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 3200);
         }
 
+        var SHOTS = {
+            firefox:     { src: "./firefox.png",            title: "Firefox" },
+            nautilus:    { src: "./nautilus.png",           title: "Fichiers" },
+            trash:       { src: "./nautilus%3Atrash.png",   title: "Corbeille" },
+            libreoffice: { src: "./libreoffice-main.png",   title: "LibreOffice" },
+            editor:      { src: "./text-editor.png",        title: "Éditeur de texte" }
+        };
+
+        // Applications en cours : l'ordre suit celui des lancements (la dernière est au-dessus)
+        function syncDisplay(apps) {
+            xdisplay.hidden = apps.length === 0;
+            Array.prototype.slice.call(xdisplay.children).forEach(function (img) {
+                if (apps.indexOf(img.dataset.app) === -1) img.remove();
+            });
+            apps.forEach(function (k) {
+                if (!Object.prototype.hasOwnProperty.call(SHOTS, k)) return;
+                var img = xdisplay.querySelector('img[data-app="' + k + '"]');
+                if (!img) {
+                    img = document.createElement("img");
+                    img.dataset.app = k;
+                    img.alt = SHOTS[k].title;
+                    img.draggable = false;
+                    img.src = SHOTS[k].src;
+                }
+                xdisplay.appendChild(img);
+            });
+        }
+
         function render(state) {
             var started = !!(state && state.started);
             nosession.hidden = started;
             desktop.hidden = !started;
+            // Avec les fenêtres libres, les applications flottent au-dessus du lanceur : rien à afficher ici
+            syncDisplay(started && state.freeform === false && state.apps ? state.apps : []);
         }
 
         function message(code) {
             switch (code) {
-                case "no-freeform":
-                    return "Activez « Autoriser les fenêtres de forme libre » dans Paramètres > Système > Options pour les développeurs.";
                 case "no-session":
                     return "Aucune session Wayland active.";
                 default:

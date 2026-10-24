@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Android Linux</title>
+  <title>WebDroid</title>
     <link rel="icon" type="image/png" href="./com.android/ic_launcher.png">
       <link rel="apple-touch-icon" href="./com.android/ic_launcher.png">
   <style>
@@ -37,7 +37,7 @@
     /* Tiroir de notifications */
     .notification-drawer {
       position: fixed;
-      z-index: 40;
+      z-index: 60;
       top: 0;
       left: 0;
       right: 0;
@@ -214,7 +214,7 @@
 
     .notification-zone {
       position: fixed;
-      z-index: 30;
+      z-index: 50;
       top: 0;
       left: 0;
       right: 0;
@@ -325,6 +325,9 @@
       align-items: center;
       gap: 8px;
       max-width: calc(100% - 24px);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
       padding: 10px 14px;
       border-radius: 34px;
       background: rgba(28, 32, 38, 0.62);
@@ -333,7 +336,16 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
     }
+    .dock::-webkit-scrollbar { display: none; }
+    .dock-sep {
+      flex-shrink: 0;
+      width: 1px;
+      height: 38px;
+      margin: 0 6px 8px;
+      background: rgba(255, 255, 255, 0.22);
+    }
     .dock-item {
+      flex-shrink: 0;
       position: relative;
       display: flex;
       flex-direction: column;
@@ -368,6 +380,7 @@
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
     .dock-item.running .dock-dot { opacity: 0.9; transform: scale(1); }
+    .dock-item.running.minimized .dock-dot { opacity: 0.4; }
 
     /* Iframe d'exécution */
     .drawer-open .app-window { pointer-events: none; }
@@ -396,8 +409,8 @@
     .win-bar, .win-shield, .win-resize { display: none; }
 
     /* Fenêtre de forme libre : uniquement pour les applications X11 (Firefox, Fichiers…) */
-    .app-window.floating { background: #f6f5f4; }
-    .app-window.floating:not(.maximized) {
+    .app-window.floating { background: #f6f5f4; overflow: visible; }
+    .app-window.floating.is-normal {
       top: var(--y);
       left: var(--x);
       right: auto;
@@ -405,9 +418,17 @@
       width: var(--w);
       height: var(--h);
       border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     }
+    .app-window.floating.is-normal.focused {
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.18);
+    }
+    /* Ancrage sur la moitié gauche / droite de l'écran (top et bottom viennent de .app-window) */
+    .app-window.floating.snap-left,
+    .app-window.floating.snap-right { right: auto; width: 50%; height: auto; }
+    .app-window.floating.snap-left { left: 0; }
+    .app-window.floating.snap-right { left: 50%; }
+
     .app-window.floating .win-bar {
       display: flex;
       align-items: center;
@@ -421,8 +442,9 @@
       user-select: none;
       -webkit-user-select: none;
     }
+    .app-window.floating.is-normal .win-bar { border-radius: 14px 14px 0 0; }
     .app-window.floating.focused .win-bar { background: #2c3138; }
-    .app-window.floating.maximized .win-bar { cursor: default; }
+    .app-window.floating:not(.is-normal) .win-bar { cursor: default; }
     .win-title {
       flex: 1;
       min-width: 0;
@@ -430,11 +452,12 @@
       align-items: center;
       gap: 8px;
       font-size: 13px;
-      color: #e8eaed;
+      color: #9aa0a6;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .app-window.floating.focused .win-title { color: #e8eaed; }
     .win-title img { width: 18px; height: 18px; object-fit: contain; }
     .win-btn {
       width: 28px;
@@ -453,8 +476,8 @@
       flex: 1;
       min-height: 0;
       display: flex;
-      background: #f6f5f4;
     }
+    .app-window.floating.is-normal .x11-body { border-radius: 0 0 14px 14px; overflow: hidden; }
     .x11-body img {
       width: 100%;
       height: 100%;
@@ -463,6 +486,7 @@
       user-select: none;
       -webkit-user-select: none;
     }
+    /* Clic dans une fenêtre sans focus : le bouclier capte le premier appui */
     .app-window.floating:not(.focused) .win-shield {
       display: block;
       position: absolute;
@@ -472,18 +496,36 @@
       bottom: 0;
       z-index: 2;
     }
-    .app-window.floating:not(.maximized) .win-resize {
-      display: block;
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      width: 22px;
-      height: 22px;
-      z-index: 3;
-      cursor: nwse-resize;
-      touch-action: none;
-      background: linear-gradient(135deg, transparent 52%, rgba(0,0,0,.35) 52%, rgba(0,0,0,.35) 62%,
-                  transparent 62%, transparent 72%, rgba(0,0,0,.35) 72%, rgba(0,0,0,.35) 82%, transparent 82%);
+    /* Poignées de redimensionnement : 4 bords + 4 coins */
+    .win-edge { display: none; position: absolute; z-index: 3; touch-action: none; }
+    .app-window.floating.is-normal .win-edge { display: block; }
+    .win-edge[data-dir="n"]  { top: -4px; left: 12px; right: 12px; height: 9px; cursor: ns-resize; }
+    .win-edge[data-dir="s"]  { bottom: -4px; left: 12px; right: 12px; height: 9px; cursor: ns-resize; }
+    .win-edge[data-dir="e"]  { right: -4px; top: 12px; bottom: 12px; width: 9px; cursor: ew-resize; }
+    .win-edge[data-dir="w"]  { left: -4px; top: 12px; bottom: 12px; width: 9px; cursor: ew-resize; }
+    .win-edge[data-dir="ne"] { top: -5px; right: -5px; width: 16px; height: 16px; cursor: nesw-resize; }
+    .win-edge[data-dir="nw"] { top: -5px; left: -5px; width: 16px; height: 16px; cursor: nwse-resize; }
+    .win-edge[data-dir="se"] { bottom: -5px; right: -5px; width: 16px; height: 16px; cursor: nwse-resize; }
+    .win-edge[data-dir="sw"] { bottom: -5px; left: -5px; width: 16px; height: 16px; cursor: nesw-resize; }
+
+    /* Aperçu de l'ancrage pendant le déplacement */
+    .snap-preview {
+      display: none;
+      position: fixed;
+      z-index: 45;
+      border: 2px solid rgba(138, 180, 255, 0.95);
+      background: rgba(138, 180, 255, 0.18);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    /* Animations d'ouverture / de fermeture */
+    @keyframes win-in  { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+    @keyframes win-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.92); } }
+    .app-window.anim-in  { animation: win-in 0.16s ease-out; }
+    .app-window.anim-out { animation: win-out 0.14s ease-in forwards; }
+    @media (prefers-reduced-motion: reduce) {
+      .app-window.anim-in, .app-window.anim-out { animation: none; }
     }
 
     .recents-overlay {
@@ -592,7 +634,7 @@
       align-items: center;
       justify-content: space-between;
       background: rgba(0, 0, 0, .12);
-      z-index: 30;
+      z-index: 50;
     }
 
     .nav-button {
@@ -802,7 +844,6 @@
     const notifWakelock = document.getElementById("notifWakelock");
 
     const dock = document.getElementById("dock");
-    const dockItems = document.querySelectorAll(".dock-item");
     const btnXWayland = document.getElementById("btnXWayland");
     const btnTermux = document.getElementById("btnTermux");
     const btnSettings = document.getElementById("btnSettings");
@@ -824,20 +865,40 @@
                   card: document.getElementById("cardSettings"), close: document.getElementById("closeSettings") }
     };
 
-    // Applications X11 : s'ouvrent en fenêtre de forme libre (capture d'écran de la fenêtre)
+    // Applications X11 : s'ouvrent en fenêtre de forme libre (capture d'écran de la fenêtre).
+    // w/h = dimensions de la capture (ajustées au chargement de l'image) ; cmd = commande Termux.
     const X11_APPS = {
-      firefox:     { title: "Firefox", icon: "./com.termux/firefox.png",
+      firefox:     { title: "Firefox", icon: "./com.termux/firefox.png", cmd: "firefox", bg: "#f7f6fb",
                      shot: "./com.termux.wayland/firefox.png", w: 1523, h: 1554 },
-      nautilus:    { title: "Fichiers", icon: "./com.termux/nautilus.png",
-                     shot: "./com.termux.wayland/nautilus.png", w: 2261, h: 1539 },
-      trash:       { title: "Corbeille", icon: "./com.termux/trash.png",
-                     shot: "./com.termux.wayland/nautilus%3Atrash.png", w: 2273, h: 1534 },
-      libreoffice: { title: "LibreOffice", icon: "./com.termux/libreoffice-main.png",
-                     shot: "./com.termux.wayland/libreoffice-main.png", w: 1539, h: 1553 },
-      editor:      { title: "Éditeur de texte", icon: "./com.termux/text-editor.png",
+      nautilus:    { title: "Fichiers", icon: "./com.termux/nautilus.png", cmd: "nautilus", bg: "#ffffff",
+                     shot: "./com.termux.wayland/nautilus.png", w: 728, h: 485 },
+      trash:       { title: "Corbeille", icon: "./com.termux/trash.png", cmd: "nautilus trash://", bg: "#ffffff",
+                     shot: "./com.termux.wayland/nautilus%3Atrash.png", w: 1334, h: 823 },
+      libreoffice: { title: "LibreOffice", icon: "./com.termux/libreoffice-main.png", cmd: "libreoffice", bg: "#666666",
+                     shot: "./com.termux.wayland/libreoffice-main.png", w: 1539, h: 1475 },
+      editor:      { title: "Éditeur de texte", icon: "./com.termux/text-editor.png", cmd: "gnome-text-editor", bg: "#ffffff",
                      shot: "./com.termux.wayland/text-editor.png", w: 1386, h: 1077 }
     };
     const hasOwn = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+
+    // Icônes des logiciels Linux dans le dock (après un séparateur)
+    function buildLinuxDock() {
+      const sep = document.createElement("span");
+      sep.className = "dock-sep";
+      dock.appendChild(sep);
+      for (const k in X11_APPS) {
+        const a = X11_APPS[k];
+        const b = document.createElement("button");
+        b.className = "dock-item";
+        b.dataset.x11 = k;
+        b.setAttribute("aria-label", a.title);
+        b.title = a.title;
+        b.innerHTML = '<img alt=""><span class="dock-dot"></span>';
+        b.querySelector("img").src = a.icon;
+        dock.appendChild(b);
+      }
+    }
+    buildLinuxDock();
 
     // État des applications
     const openApps = { xwayland: false, termux: false, settings: false };
@@ -847,7 +908,9 @@
     let activeApp = null; // application native plein écran au premier plan
     let activeX = null;   // fenêtre X11 qui a le focus
     let wakelockAcquired = false;
-    const x11 = { started: false };   // session Wayland démarrée par "wayland --start"
+    const x11 = { started: false, apps: [] };   // session Wayland ; apps = applications X11 en cours (la dernière est au premier plan)
+    let termuxReady = false;          // la page Termux est chargée et écoute les commandes
+    let pendingCmd = null;            // commande à taper dès que Termux est prêt
 
     /* ===== Réglages écrits par l'app Paramètres (postMessage) ===== */
     const settings = { devUnlocked: false, devOn: false, usbDebug: false, stayAwake: false, freeform: false };
@@ -867,13 +930,41 @@
     const freeformOn = () => settings.devOn && settings.freeform;
 
     /* ===== Session Wayland / applications X11 ===== */
-    function x11State() { return { started: x11.started, freeform: freeformOn() }; }
+    function x11State() { return { started: x11.started, freeform: freeformOn(), apps: x11.apps.slice() }; }
+
+    function notifyTermux(msg) {
+      const w = wins.termux;
+      if (w && w.frame.contentWindow) w.frame.contentWindow.postMessage(msg, "*");
+    }
 
     function broadcastX11() {
+      renderDock();
       const w = wins.xwayland;
       if (w && w.frame.contentWindow) {
         w.frame.contentWindow.postMessage({ type: "tw-x11-state", state: x11State() }, "*");
       }
+    }
+
+    // Lance une application X11 :
+    // - avec les fenêtres libres : fenêtre flottante (créée, restaurée ou mise au premier plan)
+    // - sans : affichage plein écran dans Termux XWayland, comme dans Termux:X11
+    function launchX11(appKey) {
+      const i = x11.apps.indexOf(appKey);
+      if (i !== -1) x11.apps.splice(i, 1);
+      x11.apps.push(appKey);
+      if (freeformOn()) openX11(appKey);
+      else if (activeApp !== "xwayland") openApp("xwayland");
+      broadcastX11();
+    }
+
+    // L'application se termine (fenêtre fermée) ; si c'était la dernière, le prompt de Termux revient
+    function quitX11(appKey) {
+      const i = x11.apps.indexOf(appKey);
+      if (i !== -1) x11.apps.splice(i, 1);
+      removeWindow("x11:" + appKey);
+      renderWindows();
+      broadcastX11();
+      if (!x11.apps.length) notifyTermux({ type: "tw-termux-idle" });
     }
 
     function x11Request(d) {
@@ -886,8 +977,11 @@
       if (d.action === "launch") {
         if (!hasOwn(X11_APPS, d.app)) return { ok: false, code: "unknown-app" };
         if (!x11.started) return { ok: false, code: "no-session" };
-        if (!freeformOn()) return { ok: false, code: "no-freeform" };
-        openX11(d.app);
+        launchX11(d.app);
+        return { ok: true };
+      }
+      if (d.action === "interrupt") {   // Ctrl+C dans Termux : arrête la session et toutes ses applications
+        endSession();
         return { ok: true };
       }
       return { ok: false, code: "bad-request" };
@@ -895,13 +989,18 @@
 
     function endSession() {
       x11.started = false;
-      closeAllX();
+      x11.apps = [];
+      dropWindows();
       broadcastX11();
     }
 
-    // Réglage modifié : sans "fenêtres de forme libre", aucune fenêtre X11 ne peut rester ouverte
+    // Réglage modifié : les applications en cours passent en fenêtres libres ou en plein écran XWayland
     function applyMode() {
-      if (!freeformOn()) closeAllX();
+      if (freeformOn()) {
+        x11.apps.forEach(k => { if (!wins["x11:" + k]) openX11(k); });
+      } else {
+        dropWindows();
+      }
       broadcastX11();
     }
 
@@ -921,7 +1020,13 @@
           applyMode();
         }
       } else if (src === "termux" || src === "xwayland") {
-        if (d.type === "tw-x11-get") {
+        if (src === "termux" && d.type === "tw-termux-ready") {
+          termuxReady = true;
+          if (pendingCmd) {
+            notifyTermux({ type: "tw-termux-run", cmd: pendingCmd.cmd, animate: pendingCmd.animate });
+            pendingCmd = null;
+          }
+        } else if (d.type === "tw-x11-get") {
           e.source.postMessage({ type: "tw-x11-state", state: x11State() }, "*");
         } else if (d.type === "tw-x11") {
           const res = x11Request(d);
@@ -933,6 +1038,8 @@
     /* ===== Fenêtres ===== */
     const BAR_H = 36;
     const clamp = (v, min, max) => Math.max(min, Math.min(v, Math.max(min, max)));
+    const reducedMotion = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const lastGeom = {};   // dernière position/taille de chaque app (mémoire de session)
 
     function region() {
       const top = notificationZone.getBoundingClientRect().height;
@@ -941,26 +1048,59 @@
     }
 
     // Les fenêtres X11 gardent le ratio de leur capture d'écran
-    function clampWin(win) {
+    function fitSize(win) {
       const r = region();
       const maxW = Math.min(r.width, (r.height - BAR_H) * win.aspect);
       win.w = clamp(win.w, Math.min(240, maxW), maxW);
       win.h = Math.round(win.w / win.aspect) + BAR_H;
+    }
+
+    function fitPos(win) {
+      const r = region();
       win.x = clamp(win.x, 0, r.width - win.w);
       win.y = clamp(win.y, r.top, r.top + r.height - win.h);
     }
 
+    function clampWin(win) { fitSize(win); fitPos(win); }
+
+    // win.state : null (fenêtre libre), "max", "left" ou "right" (ancrée).
+    // x/y/w/h gardent toujours la géométrie "libre" : on la retrouve en quittant l'état.
     function applyGeom(win) {
-      const s = win.el.style;
+      const s = win.el.style, c = win.el.classList;
       s.setProperty("--x", win.x + "px");
       s.setProperty("--y", win.y + "px");
       s.setProperty("--w", win.w + "px");
       s.setProperty("--h", win.h + "px");
-      win.el.classList.toggle("maximized", win.maximized);
+      c.toggle("is-normal", !win.state);
+      c.toggle("maximized", win.state === "max");
+      c.toggle("snap-left", win.state === "left");
+      c.toggle("snap-right", win.state === "right");
+    }
+
+    function setState(win, state) {
+      win.state = state;
+      if (!state) clampWin(win);
+      applyGeom(win);
+    }
+
+    const snapPreview = document.createElement("div");
+    snapPreview.className = "snap-preview";
+    document.body.appendChild(snapPreview);
+
+    function showSnap(target) {
+      if (!target) { snapPreview.style.display = "none"; return; }
+      const r = region();
+      Object.assign(snapPreview.style, {
+        display: "block",
+        left: (target === "right" ? r.width / 2 : 0) + "px",
+        top: r.top + "px",
+        width: (target === "max" ? r.width : r.width / 2) + "px",
+        height: r.height + "px"
+      });
     }
 
     function restackX() {
-      xorder.forEach((k, i) => { wins[k].el.style.zIndex = String(12 + i); });
+      xorder.forEach((k, i) => { wins[k].el.style.zIndex = String(26 + i); });
     }
 
     function renderWindows() {
@@ -972,6 +1112,7 @@
         if (w.kind === "x11") w.el.classList.toggle("focused", k === activeX);
       }
       dock.style.display = (!recents && !activeApp) ? "flex" : "none";
+      renderDock();
     }
 
     function focusX(key) {
@@ -984,24 +1125,85 @@
       renderWindows();
     }
 
-    function toggleMax(key) {
-      wins[key].maximized = !wins[key].maximized;
-      applyGeom(wins[key]);
+    // Fenêtre X11 visible la plus haute (hors fenêtres en cours de fermeture)
+    function topVisibleX() {
+      for (let i = xorder.length - 1; i >= 0; i--) {
+        const k = xorder[i];
+        if (shown[k] && !wins[k].closing) return k;
+      }
+      return null;
     }
 
-    function closeX(key) {
-      if (!wins[key]) return;
-      wins[key].el.remove();
+    function animateIn(win) {
+      if (reducedMotion()) return;
+      const c = win.el.classList;
+      c.remove("anim-in");
+      void win.el.offsetWidth;
+      c.add("anim-in");
+      const end = () => c.remove("anim-in");
+      win.el.addEventListener("animationend", end, { once: true });
+      setTimeout(end, 260);
+    }
+
+    function animateOut(win, done) {
+      if (reducedMotion()) { done(); return; }
+      let finished = false;
+      const end = () => {
+        if (finished) return;
+        finished = true;
+        win.el.classList.remove("anim-out");
+        done();
+      };
+      win.el.classList.add("anim-out");
+      win.el.addEventListener("animationend", end, { once: true });
+      setTimeout(end, 240);
+    }
+
+    function minimizeX(key) {
+      const win = wins[key];
+      if (!win || !shown[key] || win.closing) return;
+      animateOut(win, () => {
+        shown[key] = false;
+        if (activeX === key) activeX = topVisibleX();
+        renderWindows();
+      });
+    }
+
+    function restoreX(key) {
+      focusX(key);
+      animateIn(wins[key]);
+    }
+
+    function toggleMax(key) {
+      const win = wins[key];
+      setState(win, win.state ? null : "max");
+    }
+
+    // Retire la fenêtre du DOM (l'application X11 continue de tourner)
+    function removeWindow(key) {
+      const win = wins[key];
+      if (!win) return;
+      lastGeom[win.app] = { x: win.x, y: win.y, w: win.w };
+      win.el.remove();
       delete wins[key];
       delete shown[key];
       const i = xorder.indexOf(key);
       if (i !== -1) xorder.splice(i, 1);
-      if (activeX === key) activeX = xorder.length ? xorder[xorder.length - 1] : null;
+      if (activeX === key) activeX = topVisibleX();
+    }
+
+    function dropWindows() {
+      xorder.slice().forEach(removeWindow);
       renderWindows();
     }
 
-    function closeAllX() {
-      xorder.slice().forEach(closeX);
+    // ✕ ou Retour : animation de fermeture puis fin de l'application
+    function closeX(key) {
+      const win = wins[key];
+      if (!win || win.closing) return;
+      if (!shown[key]) { quitX11(win.app); return; }
+      win.closing = true;
+      animateOut(win, () => quitX11(win.app));
     }
 
     // Application native : iframe en plein écran, état conservé tant qu'elle n'est pas fermée
@@ -1028,39 +1230,54 @@
     // Fenêtre de forme libre pour une application X11
     function openX11(appKey) {
       const key = "x11:" + appKey;
-      if (wins[key]) { focusX(key); return; }
+      if (wins[key]) {
+        if (!shown[key]) restoreX(key); else focusX(key);
+        return;
+      }
       const app = X11_APPS[appKey];
 
       const el = document.createElement("div");
-      el.className = "app-window floating";
+      el.className = "app-window floating is-normal";
       el.dataset.app = key;
+      el.style.background = app.bg;
       el.innerHTML =
         '<div class="win-bar">' +
           '<div class="win-title"><img alt=""><span></span></div>' +
+          '<button class="win-btn" data-act="min" aria-label="Réduire">&#8211;</button>' +
           '<button class="win-btn" data-act="max" aria-label="Agrandir">&#9633;</button>' +
           '<button class="win-btn close" data-act="close" aria-label="Fermer">&times;</button>' +
         '</div>' +
         '<div class="x11-body"><img alt="" draggable="false" decoding="async"></div>' +
         '<div class="win-shield"></div>' +
-        '<div class="win-resize"></div>';
+        ["n", "s", "e", "w", "ne", "nw", "se", "sw"].map(d => '<div class="win-edge" data-dir="' + d + '"></div>').join("");
       el.querySelector(".win-title img").src = app.icon;
       el.querySelector(".win-title span").textContent = app.title;
       const shot = el.querySelector(".x11-body img");
       shot.alt = app.title;
-      shot.src = app.shot;
       document.body.appendChild(el);
 
-      // Taille initiale (ratio de la capture) et cascade
+      // Taille initiale (ratio de la capture, jamais agrandie au-delà de sa taille réelle), puis cascade
       const aspect = app.w / app.h;
       const r = region();
       const n = xorder.length;
+      const last = lastGeom[appKey];
       const win = {
-        kind: "x11", el: el, aspect: aspect, maximized: false,
-        w: Math.min(r.width * 0.7, 860, (r.height * 0.88 - BAR_H) * aspect),
+        kind: "x11", app: appKey, el: el, aspect: aspect, state: null, closing: false,
+        w: last ? last.w : Math.min(r.width * 0.7, 860, app.w, (r.height * 0.88 - BAR_H) * aspect),
         h: 0,
-        x: 40 + n * 36,
-        y: r.top + 16 + n * 36
+        x: last ? last.x : 40 + n * 36,
+        y: last ? last.y : r.top + 16 + n * 36
       };
+
+      // Le ratio réel vient de l'image chargée : les captures peuvent être remplacées sans toucher au code
+      shot.addEventListener("load", () => {
+        if (!shot.naturalWidth || !shot.naturalHeight) return;
+        win.aspect = shot.naturalWidth / shot.naturalHeight;
+        if (!win.state) clampWin(win);
+        applyGeom(win);
+      });
+      shot.src = app.shot;
+
       clampWin(win);
       applyGeom(win);
       wins[key] = win;
@@ -1068,12 +1285,12 @@
       shown[key] = true;
       wireX11(win, key);
       focusX(key);
+      animateIn(win);
     }
 
     function wireX11(win, key) {
       const el = win.el;
       const bar = el.querySelector(".win-bar");
-      const handle = el.querySelector(".win-resize");
 
       // Clic dans une fenêtre sans focus : on lui donne le focus
       el.querySelector(".win-shield").addEventListener("pointerdown", () => focusX(key));
@@ -1081,7 +1298,8 @@
       bar.addEventListener("click", (e) => {
         const b = e.target.closest(".win-btn");
         if (!b) return;
-        if (b.dataset.act === "max") toggleMax(key);
+        if (b.dataset.act === "min") minimizeX(key);
+        else if (b.dataset.act === "max") toggleMax(key);
         else closeX(key);
       });
 
@@ -1089,60 +1307,136 @@
         if (!e.target.closest(".win-btn")) toggleMax(key);
       });
 
-      // Déplacement
+      // Déplacement ; un glissé vers le haut = plein écran, vers un côté = moitié d'écran
       bar.addEventListener("pointerdown", (e) => {
         if (e.target.closest(".win-btn")) return;
         focusX(key);
-        if (win.maximized) return;
         try { bar.setPointerCapture(e.pointerId); } catch (err) {}
-        const sx = e.clientX, sy = e.clientY, ox = win.x, oy = win.y;
+        const rect = bar.getBoundingClientRect();
+        const frac = rect.width ? clamp((e.clientX - rect.left) / rect.width, 0, 1) : 0.5;
+        let sx = e.clientX, sy = e.clientY, ox = win.x, oy = win.y;
+        let started = false, snapTarget = null;
+
         const move = (ev) => {
+          if (!started) {
+            if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 4) return;
+            started = true;
+            if (win.state) {
+              // fenêtre agrandie/ancrée : on la détache et elle suit le curseur
+              setState(win, null);
+              win.x = Math.round(ev.clientX - win.w * frac);
+              win.y = Math.round(ev.clientY - BAR_H / 2);
+              sx = ev.clientX; sy = ev.clientY; ox = win.x; oy = win.y;
+            }
+          }
           win.x = ox + ev.clientX - sx;
           win.y = oy + ev.clientY - sy;
           clampWin(win);
           applyGeom(win);
+
+          const r = region();
+          snapTarget = ev.clientY <= r.top + 6 ? "max"
+                     : ev.clientX <= 6 ? "left"
+                     : ev.clientX >= r.width - 6 ? "right" : null;
+          showSnap(snapTarget);
         };
-        const up = () => {
+        const up = (ev) => {
           bar.removeEventListener("pointermove", move);
           bar.removeEventListener("pointerup", up);
           bar.removeEventListener("pointercancel", up);
+          showSnap(null);
+          if (started && snapTarget && ev.type === "pointerup") setState(win, snapTarget);
         };
         bar.addEventListener("pointermove", move);
         bar.addEventListener("pointerup", up);
         bar.addEventListener("pointercancel", up);
       });
 
-      // Redimensionnement (coin inférieur droit, ratio conservé)
-      handle.addEventListener("pointerdown", (e) => {
-        focusX(key);
-        try { handle.setPointerCapture(e.pointerId); } catch (err) {}
-        const sx = e.clientX, ow = win.w;
-        const move = (ev) => {
-          win.w = ow + ev.clientX - sx;
-          clampWin(win);
-          applyGeom(win);
-        };
-        const up = () => {
-          handle.removeEventListener("pointermove", move);
-          handle.removeEventListener("pointerup", up);
-          handle.removeEventListener("pointercancel", up);
-        };
-        handle.addEventListener("pointermove", move);
-        handle.addEventListener("pointerup", up);
-        handle.addEventListener("pointercancel", up);
+      // Redimensionnement par les 4 bords et les 4 coins (ratio conservé)
+      el.querySelectorAll(".win-edge").forEach((edge) => {
+        edge.addEventListener("pointerdown", (e) => {
+          focusX(key);
+          const dir = edge.dataset.dir;
+          try { edge.setPointerCapture(e.pointerId); } catch (err) {}
+          const sx = e.clientX, sy = e.clientY, ox = win.x, oy = win.y, ow = win.w, oh = win.h;
+          const sgnX = dir.includes("e") ? 1 : dir.includes("w") ? -1 : 0;
+          const sgnY = dir.includes("s") ? 1 : dir.includes("n") ? -1 : 0;
+          const bodyH = oh - BAR_H;
+
+          const move = (ev) => {
+            const kx = sgnX ? (ow + sgnX * (ev.clientX - sx)) / ow : null;
+            const ky = sgnY ? (bodyH + sgnY * (ev.clientY - sy)) / bodyH : null;
+            const k = kx === null ? ky : ky === null ? kx : (Math.abs(kx - 1) > Math.abs(ky - 1) ? kx : ky);
+            win.w = ow * k;
+            fitSize(win);
+            // le côté opposé à la poignée reste fixe
+            if (sgnX < 0) win.x = ox + (ow - win.w);
+            if (sgnY < 0) win.y = oy + (oh - win.h);
+            fitPos(win);
+            applyGeom(win);
+          };
+          const up = () => {
+            edge.removeEventListener("pointermove", move);
+            edge.removeEventListener("pointerup", up);
+            edge.removeEventListener("pointercancel", up);
+          };
+          edge.addEventListener("pointermove", move);
+          edge.addEventListener("pointerup", up);
+          edge.addEventListener("pointercancel", up);
+        });
       });
     }
 
     window.addEventListener("resize", () => {
-      for (const k of xorder) { clampWin(wins[k]); applyGeom(wins[k]); }
+      for (const k of xorder) { if (!wins[k].state) clampWin(wins[k]); applyGeom(wins[k]); }
     });
 
     /* ===== Dock, notifications, tiroir ===== */
     function renderDock() {
-      dockItems.forEach(el => el.classList.toggle("running", !!openApps[el.dataset.app]));
+      dock.querySelectorAll(".dock-item").forEach(el => {
+        const isApp = !!el.dataset.app;
+        const key = "x11:" + el.dataset.x11;
+        el.classList.toggle("running", isApp ? !!openApps[el.dataset.app] : x11.apps.includes(el.dataset.x11));
+        el.classList.toggle("minimized", !isApp && !!wins[key] && !shown[key]);
+      });
     }
 
-    dockItems.forEach(el => el.addEventListener("click", () => openApp(el.dataset.app)));
+    // Envoie une commande à Termux. Visible : elle est tapée à l'écran ; en arrière-plan : exécutée directement
+    function sendToTermux(cmd) {
+      if (!termuxReady) { pendingCmd = { cmd: cmd, animate: true }; return; }
+      const visible = activeApp === "termux" && !recentsOverlay.classList.contains("open");
+      notifyTermux({ type: "tw-termux-run", cmd: cmd, animate: visible });
+    }
+
+    // Ouvre Termux (redirection) et y lance une commande
+    function runInTermux(cmd) {
+      openApp("termux");
+      sendToTermux(cmd);
+    }
+
+    // Icône Linux du dock :
+    // - fenêtre libre déjà ouverte -> comportement de barre des tâches
+    // - session pas encore démarrée -> redirection vers Termux avec "wayland --start && commande"
+    // - session démarrée -> la commande s'exécute dans Termux, qui peut rester en arrière-plan
+    function dockLinux(appKey) {
+      const key = "x11:" + appKey;
+      if (wins[key]) {
+        if (!shown[key]) restoreX(key);
+        else if (activeX === key) minimizeX(key);
+        else focusX(key);
+        return;
+      }
+      const cmd = X11_APPS[appKey].cmd;
+      if (!x11.started) runInTermux("wayland --start && " + cmd);
+      else sendToTermux(cmd);
+    }
+
+    dock.addEventListener("click", (e) => {
+      const b = e.target.closest(".dock-item");
+      if (!b) return;
+      if (b.dataset.app) openApp(b.dataset.app);
+      else if (b.dataset.x11) dockLinux(b.dataset.x11);
+    });
 
     function updateNotifications() {
       renderDock();
@@ -1200,6 +1494,8 @@
       if (key === "termux") {
         wakelockAcquired = false;
         notifWakelock.textContent = "Acquire wakelock";
+        termuxReady = false;
+        pendingCmd = null;
         endSession();   // fermer Termux arrête la session Wayland et ses fenêtres
       }
 
@@ -1266,8 +1562,9 @@
         leaveRecents();
       } else if (activeApp) {
         goHome();
-      } else if (xorder.length) {
-        closeX(xorder[xorder.length - 1]);   // ferme la fenêtre X11 au premier plan
+      } else {
+        const top = topVisibleX();
+        if (top) closeX(top);   // ferme la fenêtre X11 au premier plan
       }
     });
 

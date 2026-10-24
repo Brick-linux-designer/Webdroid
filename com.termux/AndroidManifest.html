@@ -56,6 +56,22 @@
             color: #fff;
         }
 
+        #welcome[hidden] { display: none; }
+        #prompt[hidden] { display: none; }
+        #ctrlc {
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 8px;
+            background: #3a3a3a;
+            color: #fff;
+            font: inherit;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #ctrlc[hidden] { display: none; }
         #log div {
             min-height: 1.6em;
         }
@@ -64,7 +80,7 @@
 
 <body>
 
-<div class="terminal">Welcome to Termux!
+<div class="terminal"><div id="welcome">Welcome to Termux!
 
 Docs:        <a href="https://termux.dev/docs" target="_blank" rel="noopener noreferrer">https://termux.dev/docs</a>
 Donate:      <a href="https://termux.dev/donate" target="_blank" rel="noopener noreferrer">https://termux.dev/donate</a>
@@ -87,26 +103,42 @@ try 'termux-change-repo' command.
 Report issues at:
 https://termux.dev/issues
 
-<div id="log"></div>
-<div class="command">~$<input id="commandInput" value="wayland --start" autofocus autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal command"></div>
+</div><div id="log"></div>
+<div class="command" id="prompt">~$<input id="commandInput" value="wayland --start" autofocus autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal command"></div>
 
 </div>
 
+<button id="ctrlc" hidden>CTRL+C</button>
 <script>
     const commandInput = document.getElementById("commandInput");
+    const promptEl = document.getElementById("prompt");
+    const ctrlc = document.getElementById("ctrlc");
     const log = document.getElementById("log");
+    const welcome = document.getElementById("welcome");
     const embedded = window.parent !== window;
+    const sleep = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
 
-    /* ----- Dialogue avec le lanceur (session Wayland / fenêtres X11) ----- */
+    let running = false;   // une commande (ou une chaîne de commandes) est en cours d'exécution
+    let fgJob = false;     // processus au premier plan (session Wayland) : le prompt est masqué
+    let typing = Promise.resolve();
+
+    /* ----- Dialogue avec le lanceur (session Wayland / applications X11) ----- */
     let nextId = 1;
     const pending = {};
 
     window.addEventListener("message", function(e) {
         if (e.source !== window.parent) return;
         const d = e.data;
-        if (d && d.type === "tw-x11-result" && pending[d.id]) {
+        if (!d) return;
+        if (d.type === "tw-x11-result" && pending[d.id]) {
             pending[d.id](d);
             delete pending[d.id];
+        } else if (d.type === "tw-termux-run" && typeof d.cmd === "string") {
+            // commande envoyée par le lanceur (icône du dock)
+            runRemote(d.cmd, !!d.animate);
+        } else if (d.type === "tw-termux-idle") {
+            // la dernière fenêtre est fermée : le processus au premier plan se termine
+            if (fgJob) setFg(false);
         }
     });
 
@@ -123,6 +155,21 @@ https://termux.dev/issues
     }
 
     /* ----- Terminal ----- */
+    // Processus au premier plan : le prompt disparaît jusqu'à Ctrl+C ou la fermeture de la dernière fenêtre
+    function setFg(on) {
+        fgJob = on;
+        promptEl.hidden = on;
+        ctrlc.hidden = !on;
+        if (!on) commandInput.focus();
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    // "clear" / Ctrl+L : efface tout l'écran, texte d'accueil compris
+    function clearScreen() {
+        log.textContent = "";
+        welcome.hidden = true;
+    }
+
     function print(text) {
         const line = document.createElement("div");
         line.textContent = text;
@@ -133,8 +180,6 @@ https://termux.dev/issues
         switch (code) {
             case "no-session":
                 return "Error: cannot open display. Start the session first with: wayland --start";
-            case "no-freeform":
-                return 'Error: freeform windows are disabled. Enable "Autoriser les fenêtres de forme libre" in Paramètres > Système > Options pour les développeurs.';
             case "no-launcher":
                 return "Error: no display server available.";
             default:
@@ -158,6 +203,11 @@ https://termux.dev/issues
         if (!part) return true;
         const args = part.split(/\s+/);
 
+        if (args[0] === "clear") {
+            clearScreen();
+            return true;
+        }
+
         if (args[0] === "wayland") {
             if (args.length !== 2 || args[1] !== "--start") {
                 print("Usage: wayland --start");
@@ -165,7 +215,12 @@ https://termux.dev/issues
             }
             const r = await x11({ action: "start" });
             if (!r.ok) { print(errorText(r.code)); return false; }
-            print(r.already ? "wayland: session already running" : "Wayland session started (XWayland ready).");
+            if (r.already) {
+                print("wayland: session already running");
+            } else {
+                print("Wayland session started (XWayland ready).");
+                setFg(true);    // le serveur reste au premier plan
+            }
             return true;
         }
 
@@ -176,6 +231,7 @@ https://termux.dev/issues
         }
         const r = await x11({ action: "launch", app: app });
         if (!r.ok) { print(errorText(r.code)); return false; }
+        setFg(true);            // l'application tourne au premier plan
         return true;
     }
 
@@ -184,6 +240,61 @@ https://termux.dev/issues
         const parts = line.split("&&");
         for (const part of parts) {
             if (!(await exec(part))) break;
+        }
+    }
+
+    async function execLine(cmd) {
+        running = true;
+        commandInput.disabled = true;
+        await run(cmd);
+        commandInput.disabled = false;
+        running = false;
+        if (!fgJob) commandInput.focus();
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    async function submit() {
+        const cmd = commandInput.value.trim();
+        print("~$ " + commandInput.value);
+        commandInput.value = "";
+        if (cmd) { history.push(cmd); histPos = history.length; }
+        await execLine(cmd);
+    }
+
+    // Tape la commande caractère par caractère puis l'exécute
+    async function typeAndRun(cmd) {
+        commandInput.focus();
+        commandInput.value = "";
+        for (const ch of cmd) {
+            commandInput.value += ch;
+            await sleep(18);
+        }
+        await sleep(180);
+        await submit();
+    }
+
+    // Commande venue du lanceur. Termux visible : elle est tapée ; en arrière-plan : exécutée tout de suite
+    function runRemote(cmd, animate) {
+        typing = typing.then(async function() {
+            while (running) await sleep(50);
+            if (animate && !fgJob) {
+                await typeAndRun(cmd);
+            } else {
+                print("~$ " + cmd);
+                await execLine(cmd);
+            }
+        });
+    }
+
+    // Ctrl+C : au premier plan, arrête la session Wayland et ses applications
+    async function interrupt() {
+        if (fgJob) {
+            print("^C");
+            await x11({ action: "interrupt" });
+            setFg(false);
+        } else if (!running) {
+            print("~$ " + commandInput.value + "^C");
+            commandInput.value = "";
         }
     }
 
@@ -203,25 +314,36 @@ https://termux.dev/issues
             commandInput.value = history[histPos] || "";
             return;
         }
+        if (event.ctrlKey && event.key.toLowerCase() === "l") {
+            event.preventDefault();
+            clearScreen();
+            return;
+        }
         if (event.key !== "Enter") return;
         event.preventDefault();
+        await submit();
+    });
 
-        const cmd = commandInput.value.trim();
-        print("~$ " + commandInput.value);
-        commandInput.value = "";
-        if (cmd) { history.push(cmd); histPos = history.length; }
+    document.addEventListener("keydown", function(event) {
+        if (!(event.ctrlKey && event.key.toLowerCase() === "c")) return;
+        // du texte est sélectionné : Ctrl+C sert à le copier
+        if (window.getSelection && String(window.getSelection())) return;
+        event.preventDefault();
+        interrupt();
+    });
 
-        commandInput.disabled = true;
-        await run(cmd);
-        commandInput.disabled = false;
-        commandInput.focus();
-        window.scrollTo(0, document.body.scrollHeight);
+    ctrlc.addEventListener("click", function(event) {
+        event.stopPropagation();
+        interrupt();
     });
 
     // Remet le focus dans le terminal si l'utilisateur clique ailleurs.
     document.addEventListener("click", function() {
         commandInput.focus();
     });
+
+    // Prévient le lanceur que le terminal est prêt à recevoir des commandes
+    if (embedded) window.parent.postMessage({ type: "tw-termux-ready" }, "*");
 </script>
 
 </body>
