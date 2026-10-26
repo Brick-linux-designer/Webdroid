@@ -177,6 +177,45 @@
             z-index: 10;
         }
         #snack.show { opacity: 1; transform: translate(-50%, 0); }
+
+        /* ---------- Recherche, curseurs, jauges ---------- */
+        .search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            height: 52px;
+            margin: 4px 16px 10px;
+            padding: 0 18px;
+            border-radius: 26px;
+            background: #3a3f45;
+        }
+        .search svg { width: 22px; height: 22px; fill: #c4c7c5; flex-shrink: 0; }
+        .search input {
+            flex: 1;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #e3e3e3;
+            font: inherit;
+            font-size: 16px;
+        }
+        .search-empty { padding: 28px 24px; text-align: center; color: rgba(255,255,255,.55); }
+
+        .row .icon.has-img { background: transparent; }
+        .row .icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+
+        .row.slider { cursor: default; }
+        .row.slider:hover { background: transparent; }
+        .row.slider input[type="range"] { width: 100%; margin: 10px 0 0; accent-color: #a8c7fa; }
+        .slider-val { min-width: 52px; text-align: right; font-size: 14px; color: rgba(255,255,255,.7); }
+
+        .bigstat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 24px 14px; text-align: center; }
+        .bigstat .value { font-size: 56px; font-weight: 300; }
+        .bigstat .caption { font-size: 14px; color: rgba(255,255,255,.62); }
+        .meter { height: 10px; margin: 6px 24px 14px; border-radius: 5px; background: #4a4f55; overflow: hidden; }
+        .meter .fill { height: 100%; border-radius: 5px; background: #a8c7fa; }
+        .hint { padding: 8px 24px 4px; font-size: 13px; line-height: 1.4; color: rgba(255,255,255,.55); }
     </style>
 </head>
 <body>
@@ -198,19 +237,31 @@
             devOn: false,         // interrupteur principal
             usbDebug: false,
             stayAwake: false,
-            freeform: false       // Autoriser les fenêtres de forme libre
+            freeform: false,      // Autoriser les fenêtres de forme libre
+            wifi: true,
+            bluetooth: false,
+            dnd: false,           // Ne pas déranger
+            batterySaver: false,
+            brightness: 100       // 10 à 100 %
         };
         var STORAGE_KEY = "tw_settings";
         var state = Object.assign({}, DEFAULTS);
         var embedded = window.parent !== window;
 
+        function applyTyped(src) {
+            Object.keys(DEFAULTS).forEach(function (k) {
+                var v = src[k];
+                if (typeof DEFAULTS[k] === "boolean") {
+                    if (typeof v === "boolean") state[k] = v;
+                } else if (typeof v === "number" && isFinite(v)) {
+                    state[k] = Math.min(100, Math.max(10, Math.round(v)));
+                }
+            });
+        }
+
         function load() {
-            try {
-                var s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-                Object.keys(DEFAULTS).forEach(function (k) {
-                    if (typeof s[k] === "boolean") state[k] = s[k];
-                });
-            } catch (e) { /* stockage indisponible */ }
+            try { applyTyped(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")); }
+            catch (e) { /* stockage indisponible */ }
         }
 
         function save() {
@@ -220,18 +271,49 @@
 
         load();
 
-        if (embedded) {
-            window.addEventListener("message", function (e) {
-                if (e.source !== window.parent) return;
-                var d = e.data;
-                if (d && d.type === "tw-settings-state" && d.state) {
-                    Object.keys(DEFAULTS).forEach(function (k) {
-                        if (typeof d.state[k] === "boolean") state[k] = d.state[k];
-                    });
-                    render();
-                }
-            });
-            window.parent.postMessage({ type: "tw-settings-get" }, "*");
+        /* ===== Informations réelles du navigateur (asynchrones) ===== */
+        var info = { battery: null, storage: null };
+
+        function refresh() {
+            // on ne reconstruit pas la page pendant une saisie ou un glissement de curseur
+            var a = document.activeElement;
+            if (a && (a.type === "search" || a.type === "range")) return;
+            render();
+        }
+
+        if (navigator.getBattery) {
+            navigator.getBattery().then(function (b) {
+                info.battery = b;
+                ["levelchange", "chargingchange", "chargingtimechange", "dischargingtimechange"].forEach(function (ev) {
+                    b.addEventListener(ev, refresh);
+                });
+                refresh();
+            }).catch(function () {});
+        }
+        if (navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(function (e) { info.storage = e; refresh(); }).catch(function () {});
+        }
+
+        function batteryInfo() {
+            if (info.battery) {
+                var b = info.battery;
+                return { level: Math.round(b.level * 100), charging: b.charging, real: true,
+                         remaining: b.charging ? b.chargingTime : b.dischargingTime };
+            }
+            return { level: 85, charging: false, real: false, remaining: Infinity };
+        }
+
+        function fmtBytes(n) {
+            if (!isFinite(n)) return "\u2014";
+            var u = ["o", "Ko", "Mo", "Go", "To"], i = 0;
+            while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+            return (i >= 3 ? n.toFixed(1).replace(".", ",") : String(Math.round(n))) + " " + u[i];
+        }
+
+        function fmtDuration(sec) {
+            if (!isFinite(sec) || sec <= 0) return null;
+            var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+            return (h ? h + " h " : "") + m + " min";
         }
 
         /* ===== Petits utilitaires DOM ===== */
@@ -266,11 +348,20 @@
         }
 
         function label(text) { return el("div", { "class": "section-label", text: text }); }
+        function hint(text) { return el("div", { "class": "hint", text: text }); }
 
         function row(opts) {
             var r = el("div", { "class": "row" + (opts.static ? " static" : ""), role: opts.static ? "group" : "button" });
             if (!opts.static) r.tabIndex = 0;
-            if (opts.icon) r.appendChild(el("div", { "class": "icon", text: opts.icon }));
+            if (opts.img) {
+                var ic = el("div", { "class": "icon has-img" });
+                var im = el("img", { alt: "" });
+                im.src = opts.img;
+                ic.appendChild(im);
+                r.appendChild(ic);
+            } else if (opts.icon) {
+                r.appendChild(el("div", { "class": "icon", text: opts.icon }));
+            }
             var text = el("div", { "class": "text" }, el("div", { "class": "title", text: opts.title }));
             if (opts.sub) text.appendChild(el("div", { "class": "sub", text: opts.sub }));
             r.appendChild(text);
@@ -290,10 +381,24 @@
             return r;
         }
 
+        // Curseur : mise à jour en direct, sans reconstruire la page
+        function sliderRow(title, value, onInput) {
+            var out = el("span", { "class": "slider-val", text: value + " %" });
+            var input = el("input", { type: "range", min: "10", max: "100", step: "1", "aria-label": title });
+            input.value = String(value);
+            input.addEventListener("input", function () {
+                out.textContent = input.value + " %";
+                onInput(Number(input.value));
+            });
+            return el("div", { "class": "row slider" },
+                el("div", { "class": "text" }, el("div", { "class": "title", text: title }), input), out);
+        }
+
         function soon() { snack("Indisponible dans cette version"); }
 
         /* ===== Navigation interne ===== */
         var stack = ["home"];
+        var searchValue = "";
         var appbar = document.getElementById("appbar");
         var titleEl = document.getElementById("title");
         var backBtn = document.getElementById("back");
@@ -303,25 +408,213 @@
         function back() { if (stack.length > 1) { stack.pop(); render(); } }
         backBtn.addEventListener("click", back);
 
+        function setState(key, val) {
+            state[key] = val;
+            save();
+            render();
+        }
+
         /* ===== Vues ===== */
         var TITLES = {
             home: "Paramètres",
+            network: "Réseau et Internet",
+            devices: "Appareils connectés",
+            apps: "Applications",
+            notifications: "Notifications",
+            battery: "Batterie",
+            display: "Affichage",
+            storage: "Stockage",
             system: "Système",
             about: "À propos du téléphone",
             dev: "Options pour les développeurs"
         };
 
+        /* --- Recherche dans les paramètres --- */
+        var SEARCH = [
+            { t: "Réseau et Internet", p: "network", c: "Paramètres" },
+            { t: "Wi-Fi", p: "network", c: "Réseau et Internet" },
+            { t: "Débit et latence", p: "network", c: "Réseau et Internet", k: "connexion internet vitesse" },
+            { t: "Appareils connectés", p: "devices", c: "Paramètres" },
+            { t: "Bluetooth", p: "devices", c: "Appareils connectés" },
+            { t: "Applications", p: "apps", c: "Paramètres", k: "firefox libreoffice termux fichiers nautilus editeur de texte" },
+            { t: "Notifications", p: "notifications", c: "Paramètres" },
+            { t: "Ne pas déranger", p: "notifications", c: "Notifications" },
+            { t: "Batterie", p: "battery", c: "Paramètres", k: "autonomie niveau charge" },
+            { t: "Économiseur de batterie", p: "battery", c: "Batterie" },
+            { t: "Affichage", p: "display", c: "Paramètres" },
+            { t: "Luminosité", p: "display", c: "Affichage", k: "ecran" },
+            { t: "Stockage", p: "storage", c: "Paramètres", k: "espace memoire" },
+            { t: "Système", p: "system", c: "Paramètres" },
+            { t: "Langues et saisie", p: "system", c: "Système" },
+            { t: "Date et heure", p: "system", c: "Système" },
+            { t: "À propos du téléphone", p: "about", c: "Paramètres", k: "modele version android" },
+            { t: "Numéro de build", p: "about", c: "À propos du téléphone", k: "developpeur" },
+            { t: "Options pour les développeurs", p: "dev", c: "Système", dev: true },
+            { t: "Autoriser les fenêtres de forme libre", p: "dev", c: "Options pour les développeurs", k: "freeform fenetres flottantes", dev: true },
+            { t: "Débogage USB", p: "dev", c: "Options pour les développeurs", dev: true }
+        ];
+
+        function norm(s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+
+        function updateSearch(listEl, resEl, q) {
+            var nq = norm(q.trim());
+            if (!nq) { listEl.hidden = false; resEl.hidden = true; return; }
+            listEl.hidden = true;
+            resEl.hidden = false;
+            resEl.textContent = "";
+            var hits = SEARCH.filter(function (s) {
+                return (!s.dev || state.devUnlocked) && norm(s.t + " " + (s.k || "") + " " + s.c).indexOf(nq) !== -1;
+            });
+            if (!hits.length) {
+                resEl.appendChild(el("div", { "class": "search-empty", text: "Aucun résultat pour \u00AB " + q.trim() + " \u00BB" }));
+                return;
+            }
+            hits.forEach(function (s) {
+                resEl.appendChild(row({ title: s.t, sub: s.c, chevron: true, onClick: function () {
+                    searchValue = "";
+                    stack = ["home", s.p];
+                    render();
+                    window.scrollTo(0, 0);
+                } }));
+            });
+        }
+
         function viewHome() {
-            var online = navigator.onLine ? "Connecté" : "Hors connexion";
-            return [
-                row({ icon: "\uD83D\uDCF6", title: "Réseau et Internet", sub: online, onClick: soon }),
-                row({ icon: "\uD83D\uDDA5\uFE0F", title: "Affichage", sub: screen.width + " \u00D7 " + screen.height + " px", onClick: soon }),
-                row({ icon: "\uD83D\uDD0A", title: "Son et vibreur", sub: "Volume, sonneries", onClick: soon }),
-                row({ icon: "\uD83D\uDCBE", title: "Stockage", sub: "Stockage interne", onClick: soon }),
+            var b = batteryInfo();
+            var online = navigator.onLine;
+            var netSub = state.wifi ? (online ? "Wi-Fi \u00B7 connecté" : "Wi-Fi \u00B7 aucun réseau") : "Wi-Fi désactivé";
+
+            var box = el("label", { "class": "search" });
+            box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
+            var input = el("input", { type: "search", placeholder: "Rechercher dans les paramètres", "aria-label": "Rechercher dans les paramètres" });
+            input.value = searchValue;
+            box.appendChild(input);
+
+            var listEl = el("div");
+            [
+                row({ icon: "\uD83D\uDCF6", title: "Réseau et Internet", sub: netSub, chevron: true, onClick: function () { go("network"); } }),
+                row({ icon: "\uD83D\uDD35", title: "Appareils connectés", sub: state.bluetooth ? "Bluetooth activé" : "Bluetooth désactivé", chevron: true, onClick: function () { go("devices"); } }),
+                row({ icon: "\uD83D\uDCE6", title: "Applications", sub: "Termux, Firefox, LibreOffice\u2026", chevron: true, onClick: function () { go("apps"); } }),
+                row({ icon: "\uD83D\uDD14", title: "Notifications", sub: state.dnd ? "Ne pas déranger activé" : "Aucune restriction", chevron: true, onClick: function () { go("notifications"); } }),
+                row({ icon: "\uD83D\uDD0B", title: "Batterie", sub: b.level + " %" + (b.charging ? " \u00B7 en charge" : ""), chevron: true, onClick: function () { go("battery"); } }),
+                row({ icon: "\uD83D\uDDA5\uFE0F", title: "Affichage", sub: "Luminosité " + state.brightness + " %", chevron: true, onClick: function () { go("display"); } }),
+                row({ icon: "\uD83D\uDCBE", title: "Stockage", sub: info.storage ? fmtBytes(info.storage.usage) + " utilisés" : "Stockage du navigateur", chevron: true, onClick: function () { go("storage"); } }),
                 row({ icon: "\u2699\uFE0F", title: "Système", sub: "Langues, gestes, date et heure" + (state.devUnlocked ? ", options pour les développeurs" : ""),
                       chevron: true, onClick: function () { go("system"); } }),
                 row({ icon: "\u2139\uFE0F", title: "À propos du téléphone", sub: "Web Droid JS",
                       chevron: true, onClick: function () { go("about"); } })
+            ].forEach(function (r) { listEl.appendChild(r); });
+
+            var resEl = el("div");
+            resEl.hidden = true;
+            input.addEventListener("input", function () {
+                searchValue = input.value;
+                updateSearch(listEl, resEl, searchValue);
+            });
+            updateSearch(listEl, resEl, searchValue);
+            return [box, listEl, resEl];
+        }
+
+        function viewNetwork() {
+            var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection || {};
+            var online = navigator.onLine;
+            return [
+                switchRow({ title: "Wi-Fi", sub: state.wifi ? (online ? "Connecté" : "Aucun réseau") : "Désactivé",
+                            checked: state.wifi, onChange: function (v) { setState("wifi", v); } }),
+                label("Connexion"),
+                row({ static: true, title: "État", sub: online ? "Connecté à Internet" : "Hors connexion" }),
+                row({ static: true, title: "Type de réseau (estimé)", sub: c.effectiveType ? String(c.effectiveType).toUpperCase() : "Non disponible" }),
+                row({ static: true, title: "Débit descendant (estimé)", sub: c.downlink ? c.downlink + " Mb/s" : "Non disponible" }),
+                row({ static: true, title: "Latence (estimée)", sub: (c.rtt || c.rtt === 0) ? c.rtt + " ms" : "Non disponible" }),
+                row({ static: true, title: "Économiseur de données", sub: c.saveData ? "Activé" : "Désactivé" }),
+                hint("Valeurs fournies par le navigateur. Le réglage Wi-Fi ne modifie que l'affichage du système.")
+            ];
+        }
+
+        function viewDevices() {
+            var items = [
+                switchRow({ title: "Bluetooth", sub: state.bluetooth ? "Activé" : "Désactivé",
+                            checked: state.bluetooth, onChange: function (v) { setState("bluetooth", v); } }),
+                label("Appareils"),
+                row({ static: true, title: "Appareils associés", sub: "Aucun appareil" })
+            ];
+            if (state.bluetooth) items.push(row({ static: true, title: "Appareils à proximité", sub: "Aucun appareil trouvé" }));
+            return items;
+        }
+
+        function viewApps() {
+            return [
+                label("Applications système"),
+                row({ img: "./ic_lancher.png", title: "Paramètres", sub: "com.android.settings", static: true }),
+                row({ img: "../com.termux/ic_launcher.png", title: "Termux", sub: "com.termux", static: true }),
+                row({ img: "../com.termux.wayland/ic_launcher.webp", title: "Termux XWayland", sub: "com.termux.wayland", static: true }),
+                label("Applications Linux (XWayland)"),
+                row({ img: "../com.termux/firefox.png", title: "Firefox", sub: "Commande : firefox", static: true }),
+                row({ img: "../com.termux/nautilus.png", title: "Fichiers", sub: "Commande : nautilus", static: true }),
+                row({ img: "../com.termux/trash.png", title: "Corbeille", sub: "Commande : nautilus trash://", static: true }),
+                row({ img: "../com.termux/libreoffice-main.png", title: "LibreOffice", sub: "Commande : libreoffice", static: true }),
+                row({ img: "../com.termux/text-editor.png", title: "Éditeur de texte", sub: "Commande : gnome-text-editor", static: true }),
+                hint("Les applications Linux se lancent depuis le dock ou depuis Termux, une fois la session démarrée avec wayland --start.")
+            ];
+        }
+
+        function viewNotifications() {
+            return [
+                switchRow({ title: "Ne pas déranger", sub: state.dnd ? "Activé" : "Désactivé",
+                            checked: state.dnd, onChange: function (v) { setState("dnd", v); } }),
+                label("Notifications en cours"),
+                row({ static: true, title: "Termux", sub: "Affichée tant qu'une session est ouverte" }),
+                row({ static: true, title: "Termux XWayland", sub: "Affichée tant que la session Wayland est active" })
+            ];
+        }
+
+        function viewBattery() {
+            var b = batteryInfo();
+            var rem = fmtDuration(b.remaining);
+            var caption = (b.charging ? "En charge" : "Sur batterie") +
+                          (rem ? " \u00B7 " + rem + (b.charging ? " avant la charge complète" : " restantes") : "");
+            var fill = el("div", { "class": "fill" });
+            fill.style.width = b.level + "%";
+            var items = [
+                el("div", { "class": "bigstat" },
+                    el("div", { "class": "value", text: b.level + " %" }),
+                    el("div", { "class": "caption", text: caption })),
+                el("div", { "class": "meter" }, fill),
+                switchRow({ title: "Économiseur de batterie", sub: state.batterySaver ? "Activé" : "Désactivé",
+                            checked: state.batterySaver, onChange: function (v) { setState("batterySaver", v); } })
+            ];
+            if (!b.real) items.push(hint("Valeur simulée : l'API Batterie n'est pas disponible dans ce navigateur."));
+            return items;
+        }
+
+        function viewDisplay() {
+            var dpr = window.devicePixelRatio || 1;
+            return [
+                sliderRow("Luminosité", state.brightness, function (v) { state.brightness = v; save(); }),
+                label("Écran"),
+                row({ static: true, title: "Résolution", sub: screen.width + " \u00D7 " + screen.height + " px" }),
+                row({ static: true, title: "Densité d'affichage", sub: "\u00D7" + dpr + " (ratio de pixels)" }),
+                row({ static: true, title: "Profondeur de couleur", sub: screen.colorDepth + " bits" }),
+                row({ static: true, title: "Thème", sub: "Sombre" })
+            ];
+        }
+
+        function viewStorage() {
+            var s = info.storage;
+            if (!s) {
+                return [ hint(navigator.storage && navigator.storage.estimate ? "Calcul en cours\u2026" : "Information indisponible dans ce navigateur.") ];
+            }
+            var pct = s.quota ? Math.max(1, Math.round(s.usage / s.quota * 100)) : 1;
+            var fill = el("div", { "class": "fill" });
+            fill.style.width = pct + "%";
+            return [
+                el("div", { "class": "bigstat" },
+                    el("div", { "class": "value", text: fmtBytes(s.usage) }),
+                    el("div", { "class": "caption", text: "utilisés sur " + fmtBytes(s.quota) })),
+                el("div", { "class": "meter" }, fill),
+                row({ static: true, title: "Utilisé", sub: fmtBytes(s.usage) }),
+                row({ static: true, title: "Disponible", sub: fmtBytes(Math.max(0, s.quota - s.usage)) }),
+                hint("Stockage du navigateur pour ce site (localStorage, caches\u2026).")
             ];
         }
 
@@ -337,7 +630,7 @@
                                  sub: state.devOn ? "Activées" : "Désactivées",
                                  chevron: true, onClick: function () { go("dev"); } }));
             }
-            items.push(row({ icon: "\u2B06\uFE0F", title: "Mise à jour du système", sub: "TWHTML.CANARY.261020",
+            items.push(row({ icon: "\u2B06\uFE0F", title: "Mise à jour du système", sub: "WEB-HTM-JCCS.STABLE.26.3",
                              onClick: function () { snack("Votre système est à jour"); } }));
             return items;
         }
@@ -390,12 +683,6 @@
         }
 
         /* --- Options pour les développeurs --- */
-        function setState(key, val) {
-            state[key] = val;
-            save();
-            render();
-        }
-
         function viewDev() {
             var off = !state.devOn;
 
@@ -419,7 +706,11 @@
             ];
         }
 
-        var VIEWS = { home: viewHome, system: viewSystem, about: viewAbout, dev: viewDev };
+        var VIEWS = {
+            home: viewHome, network: viewNetwork, devices: viewDevices, apps: viewApps,
+            notifications: viewNotifications, battery: viewBattery, display: viewDisplay,
+            storage: viewStorage, system: viewSystem, about: viewAbout, dev: viewDev
+        };
 
         function render() {
             var current = stack[stack.length - 1];
@@ -432,6 +723,19 @@
 
             viewEl.textContent = "";
             VIEWS[current]().forEach(function (node) { viewEl.appendChild(node); });
+        }
+
+        /* ===== Synchronisation avec le lanceur (tiroir de notifications, volets rapides) ===== */
+        if (embedded) {
+            window.addEventListener("message", function (e) {
+                if (e.source !== window.parent) return;
+                var d = e.data;
+                if (d && d.type === "tw-settings-state" && d.state) {
+                    applyTyped(d.state);
+                    refresh();
+                }
+            });
+            window.parent.postMessage({ type: "tw-settings-get" }, "*");
         }
 
         render();
