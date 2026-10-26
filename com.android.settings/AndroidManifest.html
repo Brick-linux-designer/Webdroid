@@ -545,7 +545,7 @@
         function viewApps() {
             return [
                 label("Applications système"),
-                row({ img: "./ic_lancher.png", title: "Paramètres", sub: "com.android.settings", static: true }),
+                row({ img: "./ic_launcher.png", title: "Paramètres", sub: "com.android.settings", static: true }),
                 row({ img: "../com.termux/ic_launcher.png", title: "Termux", sub: "com.termux", static: true }),
                 row({ img: "../com.termux.wayland/ic_launcher.webp", title: "Termux XWayland", sub: "com.termux.wayland", static: true }),
                 label("Applications Linux (XWayland)"),
@@ -678,7 +678,7 @@
                 row({ static: true, title: "Mémoire (approximative)", sub: mem }),
                 row({ static: true, title: "Écran", sub: screen.width + " \u00D7 " + screen.height + " px (\u00D7" + dpr + ")" }),
                 row({ static: true, title: "Langue du système", sub: nav.language || "Inconnue" }),
-                row({ title: "Numéro de build", sub: "WEB-HTM-JCCS.STABLE.26.2", onClick: tapBuild })
+                row({ title: "Numéro de build", sub: "WEB-HTM-JCCS.STABLE.26.4", onClick: tapBuild })
             ];
         }
 
