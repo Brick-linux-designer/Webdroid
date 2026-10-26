@@ -12,6 +12,8 @@
     :root {
       --top: calc(34px + env(safe-area-inset-top, 0px));
       --bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+      --bar-bg: transparent;            /* couleur de la barre d'état (celle de l'app au premier plan) */
+      --nav-bg: rgba(0, 0, 0, .12);     /* couleur de la barre de navigation */
     }
 
     html, body {
@@ -525,7 +527,8 @@
     .app-window.anim-in  { animation: win-in 0.16s ease-out; }
     .app-window.anim-out { animation: win-out 0.14s ease-in forwards; }
     @media (prefers-reduced-motion: reduce) {
-      .app-window.anim-in, .app-window.anim-out { animation: none; }
+      .app-window.anim-in, .app-window.anim-out,
+      .app-window.anim-min, .app-window.anim-unmin { animation: none; }
     }
 
     .recents-overlay {
@@ -633,7 +636,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(0, 0, 0, .12);
+      background: var(--nav-bg);
+      transition: background .2s ease;
       z-index: 50;
     }
 
@@ -679,6 +683,118 @@
       transform: scale(.88);
     }
 
+    /* ===== Barre d'état ===== */
+    .notification-zone {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: env(safe-area-inset-top, 0px) 16px 0;
+      background: var(--bar-bg);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+      transition: background .2s ease;
+    }
+    .notification-zone.hidden { display: none; }
+    .sb-left, .sb-right { display: flex; align-items: center; min-width: 0; }
+    .sb-left { gap: 10px; }
+    .sb-right { gap: 7px; }
+    .sb-time { font-variant-numeric: tabular-nums; }
+    .sb-notifs { display: flex; align-items: center; gap: 6px; }
+    .sb-notifs img { width: 15px; height: 15px; border-radius: 4px; object-fit: contain; }
+    .sb-right svg { width: 16px; height: 16px; fill: #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)); }
+    .sb-batt { display: flex; align-items: center; gap: 1px; }
+    .sb-batt svg { width: 15px; height: 17px; }
+    .sb-batt .pct { font-size: 12px; }
+
+    /* ===== Tiroir : en-tête, volets rapides, luminosité ===== */
+    .drawer-gear {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .10);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .drawer-gear svg { width: 20px; height: 20px; fill: #fff; }
+    .qs { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
+    .qs-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .qs-tile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 28px;
+      background: #3a3f45;
+      color: #e3e3e3;
+      font: inherit;
+      text-align: left;
+      min-width: 0;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, transform .1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .qs-tile svg { width: 22px; height: 22px; fill: currentColor; flex-shrink: 0; }
+    .qs-tile:active { transform: scale(.97); }
+    .qs-tile[aria-pressed="true"] { background: #a8c7fa; color: #062e6f; }
+    .qs-text { display: flex; flex-direction: column; min-width: 0; }
+    .qs-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qs-sub { font-size: 12px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qs-brightness { display: flex; align-items: center; gap: 12px; }
+    .qs-brightness svg { width: 22px; height: 22px; fill: #e3e3e3; flex-shrink: 0; }
+    .qs-brightness input { flex: 1; height: 28px; accent-color: #a8c7fa; }
+    .notif-icon-img { width: 26px; height: 26px; border-radius: 50%; object-fit: contain; background: #000; }
+
+    /* Atténuation de l'écran (curseur de luminosité) */
+    #dim {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .12s linear;
+    }
+
+    /* Retour tactile des boutons de navigation */
+    .nav-button { position: relative; }
+    .nav-button::before {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0);
+      transition: background .15s ease;
+    }
+    .nav-button:active::before { background: rgba(255, 255, 255, .22); }
+
+    /* ===== Fenêtres libres : décoration façon Ubuntu (Yaru) ===== */
+    .app-window.floating .win-bar { padding: 0 10px 0 100px; background: #2b2b2b; }
+    .app-window.floating.focused .win-bar { background: #3c3c3c; }
+    .win-title { justify-content: center; }
+    .win-btn {
+      width: 24px;
+      height: 24px;
+      margin-left: 6px;
+      background: rgba(255, 255, 255, .10);
+      font-size: 13px;
+    }
+    .win-btn:hover { background: rgba(255, 255, 255, .22); }
+    .win-btn.close:hover { background: #e95420; }
+    .app-window.floating.dragging { box-shadow: 0 28px 64px rgba(0, 0, 0, .68), 0 0 0 1px rgba(255, 255, 255, .22); }
+    .app-window.floating.dragging .win-bar { cursor: grabbing; }
+
+    @keyframes win-min   { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--mx), var(--my)) scale(.08); } }
+    @keyframes win-unmin { from { opacity: 0; transform: translate(var(--mx), var(--my)) scale(.08); } to { opacity: 1; transform: none; } }
+    .app-window.anim-min   { animation: win-min .22s cubic-bezier(.4, 0, .8, .4) forwards; }
+    .app-window.anim-unmin { animation: win-unmin .24s cubic-bezier(.2, .8, .2, 1); }
+
     @media (max-height: 650px) {
       .content { gap: 14px; padding-bottom: 88px; }
       .time-display { font-size: 80px; }
@@ -698,8 +814,20 @@
     <div class="drawer-handle"></div>
     <div class="drawer-header">
       <span id="drawerTime">00:00</span>
-      <span class="drawer-title">Notifications</span>
+      <span class="drawer-title" id="drawerDate">Notifications</span>
+      <button class="drawer-gear" id="drawerSettings" aria-label="Paramètres">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
       <button class="close-drawer" id="closeDrawer" aria-label="Fermer">×</button>
+    </div>
+
+    <!-- Volets rapides et luminosité -->
+    <div class="qs">
+      <div class="qs-tiles" id="qsTiles"></div>
+      <label class="qs-brightness">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M20 15.31L23.31 12 20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69zM12 18V6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
+        <input type="range" id="qsBrightness" min="10" max="100" step="1" aria-label="Luminosité">
+      </label>
     </div>
 
     <!-- Notification Termux -->
@@ -721,6 +849,25 @@
       </div>
     </div>
 
+    <!-- Notification de la session Wayland -->
+    <div class="notification-card" id="notifX11" style="display: none;">
+      <div class="notif-header">
+        <div class="notif-app-info">
+          <img class="notif-icon-img" src="./com.termux.wayland/ic_launcher.webp" alt="">
+          <span>Termux XWayland</span>
+        </div>
+        <div class="notif-chevron">^</div>
+      </div>
+      <div class="notif-body">
+        <div class="notif-title">Session Wayland active</div>
+        <div class="notif-sub" id="notifX11Sub">Aucune application en cours</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-action-btn" id="notifX11Open">Ouvrir</button>
+        <button class="notif-action-btn" id="notifX11Stop">Arrêter</button>
+      </div>
+    </div>
+
     <!-- État vide -->
     <div class="notification-empty" id="notificationEmpty">
       <div class="empty-icon">✓</div>
@@ -728,8 +875,12 @@
     </div>
   </section>
 
+  <!-- Barre d'état -->
   <button class="notification-zone" id="notificationZone"
-          aria-label="Ouvrir le tiroir de notifications"></button>
+          aria-label="Ouvrir le tiroir de notifications">
+    <span class="sb-left"><span class="sb-time" id="sbTime">00:00</span><span class="sb-notifs" id="sbNotifs"></span></span>
+    <span class="sb-right" id="sbRight"></span>
+  </button>
 
   <!-- Écran d'accueil -->
   <main class="content">
@@ -832,6 +983,9 @@
     </button>
   </nav>
 
+  <!-- Atténuation de l'écran (luminosité) -->
+  <div id="dim" aria-hidden="true"></div>
+
   <script>
     const drawer = document.getElementById("notificationDrawer");
     const notificationZone = document.getElementById("notificationZone");
@@ -854,14 +1008,26 @@
     const navHome = document.getElementById("navHome");
     const navRecent = document.getElementById("navRecent");
     const navigationBar = document.querySelector(".navigation");
+    const dim = document.getElementById("dim");
+    const sbTime = document.getElementById("sbTime");
+    const sbNotifs = document.getElementById("sbNotifs");
+    const sbRight = document.getElementById("sbRight");
+    const qsTiles = document.getElementById("qsTiles");
+    const qsBrightness = document.getElementById("qsBrightness");
+    const drawerDate = document.getElementById("drawerDate");
+    const drawerSettings = document.getElementById("drawerSettings");
+    const notifX11 = document.getElementById("notifX11");
+    const notifX11Sub = document.getElementById("notifX11Sub");
+    const notifX11Open = document.getElementById("notifX11Open");
+    const notifX11Stop = document.getElementById("notifX11Stop");
 
     // Applications natives : toujours en plein écran
     const APPS = {
-      xwayland: { title: "Termux XWayland", url: "./com.termux.wayland/AndroidManifest.html",
+      xwayland: { title: "Termux XWayland", url: "./com.termux.wayland/AndroidManifest.html", bar: "#000000",
                   card: document.getElementById("cardXWayland"), close: document.getElementById("closeXWayland") },
-      termux:   { title: "Termux", url: "./com.termux/AndroidManifest.html",
+      termux:   { title: "Termux", url: "./com.termux/AndroidManifest.html", bar: "#000000",
                   card: document.getElementById("cardTermux"), close: document.getElementById("closeTermux") },
-      settings: { title: "Paramètres", url: "./com.android.settings/AndroidManifest.html",
+      settings: { title: "Paramètres", url: "./com.android.settings/AndroidManifest.html", bar: "#303030",
                   card: document.getElementById("cardSettings"), close: document.getElementById("closeSettings") }
     };
 
@@ -913,14 +1079,32 @@
     let pendingCmd = null;            // commande à taper dès que Termux est prêt
 
     /* ===== Réglages écrits par l'app Paramètres (postMessage) ===== */
-    const settings = { devUnlocked: false, devOn: false, usbDebug: false, stayAwake: false, freeform: false };
-    const SETTING_KEYS = Object.keys(settings);
+    const SETTING_DEFAULTS = {
+      devUnlocked: false, devOn: false, usbDebug: false, stayAwake: false, freeform: false,
+      wifi: true, bluetooth: false, dnd: false, batterySaver: false,
+      brightness: 100                       // 10 à 100 %
+    };
+    const SETTING_KEYS = Object.keys(SETTING_DEFAULTS);
+    const settings = Object.assign({}, SETTING_DEFAULTS);
+
+    // Valide une valeur selon le type du réglage ; undefined = rejetée
+    function sanitizeSetting(k, v) {
+      const t = typeof SETTING_DEFAULTS[k];
+      if (t === "boolean") return typeof v === "boolean" ? v : undefined;
+      if (t === "number") return (typeof v === "number" && isFinite(v)) ? Math.min(100, Math.max(10, Math.round(v))) : undefined;
+      return undefined;
+    }
+
+    function applySettingsFrom(src) {
+      SETTING_KEYS.forEach(k => {
+        const v = sanitizeSetting(k, src[k]);
+        if (v !== undefined) settings[k] = v;
+      });
+    }
 
     function loadSettings() {
-      try {
-        const s = JSON.parse(localStorage.getItem("tw_settings") || "{}");
-        SETTING_KEYS.forEach(k => { if (typeof s[k] === "boolean") settings[k] = s[k]; });
-      } catch (e) { /* stockage indisponible */ }
+      try { applySettingsFrom(JSON.parse(localStorage.getItem("tw_settings") || "{}")); }
+      catch (e) { /* stockage indisponible */ }
     }
 
     function saveSettings() {
@@ -938,7 +1122,7 @@
     }
 
     function broadcastX11() {
-      renderDock();
+      updateNotifications();
       const w = wins.xwayland;
       if (w && w.frame.contentWindow) {
         w.frame.contentWindow.postMessage({ type: "tw-x11-state", state: x11State() }, "*");
@@ -1015,8 +1199,9 @@
         if (d.type === "tw-settings-get") {
           e.source.postMessage({ type: "tw-settings-state", state: settings }, "*");
         } else if (d.type === "tw-settings-set" && d.state && typeof d.state === "object") {
-          SETTING_KEYS.forEach(k => { if (typeof d.state[k] === "boolean") settings[k] = d.state[k]; });
+          applySettingsFrom(d.state);
           saveSettings();
+          applySystem();
           applyMode();
         }
       } else if (src === "termux" || src === "xwayland") {
@@ -1112,6 +1297,11 @@
         if (w.kind === "x11") w.el.classList.toggle("focused", k === activeX);
       }
       dock.style.display = (!recents && !activeApp) ? "flex" : "none";
+      // Les barres d'état et de navigation prennent la couleur de l'application au premier plan
+      const barApp = (!recents && activeApp) ? APPS[activeApp] : null;
+      const rs = document.documentElement.style;
+      rs.setProperty("--bar-bg", barApp ? barApp.bar : "transparent");
+      rs.setProperty("--nav-bg", barApp ? barApp.bar : "rgba(0, 0, 0, .12)");
       renderDock();
     }
 
@@ -1134,44 +1324,66 @@
       return null;
     }
 
-    function animateIn(win) {
+    function animateIn(win, fly) {
       if (reducedMotion()) return;
-      const c = win.el.classList;
-      c.remove("anim-in");
+      const c = win.el.classList, cls = fly ? "anim-unmin" : "anim-in";
+      c.remove("anim-in", "anim-unmin");
       void win.el.offsetWidth;
-      c.add("anim-in");
-      const end = () => c.remove("anim-in");
+      c.add(cls);
+      const end = () => c.remove(cls);
       win.el.addEventListener("animationend", end, { once: true });
-      setTimeout(end, 260);
+      setTimeout(end, 300);
     }
 
-    function animateOut(win, done) {
+    function animateOut(win, done, fly) {
       if (reducedMotion()) { done(); return; }
+      const cls = fly ? "anim-min" : "anim-out";
       let finished = false;
       const end = () => {
         if (finished) return;
         finished = true;
-        win.el.classList.remove("anim-out");
+        win.el.classList.remove(cls);
         done();
       };
-      win.el.classList.add("anim-out");
+      win.el.classList.add(cls);
       win.el.addEventListener("animationend", end, { once: true });
-      setTimeout(end, 240);
+      setTimeout(end, fly ? 300 : 240);
+    }
+
+    // Position de l'icône de l'application dans le dock (null si le dock n'est pas affiché)
+    function dockRect(appKey) {
+      if (dock.style.display === "none") return null;
+      const b = dock.querySelector('.dock-item[data-x11="' + appKey + '"]');
+      if (!b) return null;
+      const r = b.getBoundingClientRect();
+      return r.width ? r : null;
+    }
+
+    // Vecteur du centre de la fenêtre vers l'icône du dock (utilisé par les animations de réduction)
+    function setFlyVars(win, rect) {
+      const w = win.el.getBoundingClientRect();
+      win.el.style.setProperty("--mx", ((rect.left + rect.width / 2) - (w.left + w.width / 2)) + "px");
+      win.el.style.setProperty("--my", ((rect.top + rect.height / 2) - (w.top + w.height / 2)) + "px");
     }
 
     function minimizeX(key) {
       const win = wins[key];
       if (!win || !shown[key] || win.closing) return;
+      const rect = dockRect(win.app);
+      if (rect) setFlyVars(win, rect);
       animateOut(win, () => {
         shown[key] = false;
         if (activeX === key) activeX = topVisibleX();
         renderWindows();
-      });
+      }, !!rect);
     }
 
     function restoreX(key) {
       focusX(key);
-      animateIn(wins[key]);
+      const win = wins[key];
+      const rect = dockRect(win.app);
+      if (rect) setFlyVars(win, rect);
+      animateIn(win, !!rect);
     }
 
     function toggleMax(key) {
@@ -1321,6 +1533,7 @@
           if (!started) {
             if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 4) return;
             started = true;
+            el.classList.add("dragging");
             if (win.state) {
               // fenêtre agrandie/ancrée : on la détache et elle suit le curseur
               setState(win, null);
@@ -1341,6 +1554,7 @@
           showSnap(snapTarget);
         };
         const up = (ev) => {
+          el.classList.remove("dragging");
           bar.removeEventListener("pointermove", move);
           bar.removeEventListener("pointerup", up);
           bar.removeEventListener("pointercancel", up);
@@ -1390,6 +1604,108 @@
     window.addEventListener("resize", () => {
       for (const k of xorder) { if (!wins[k].state) clampWin(wins[k]); applyGeom(wins[k]); }
     });
+
+    /* ===== Barre d'état, volets rapides, luminosité ===== */
+    const ICONS = {
+      wifi: "M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z",
+      signal: "M2 22h20V2z",
+      bluetooth: "M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z",
+      dnd: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z",
+      saver: "M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4zM15 13h-2v2h-2v-2H9v-2h2V9h2v2h2v2z"
+    };
+    const svg = (name) => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="' + ICONS[name] + '"/></svg>';
+
+    // Niveau de batterie réel quand le navigateur l'expose (API Battery), sinon valeur simulée
+    const battery = { level: 0.85, charging: false, real: false };
+    if (navigator.getBattery) {
+      navigator.getBattery().then(b => {
+        const upd = () => { battery.level = b.level; battery.charging = b.charging; battery.real = true; renderStatusBar(); };
+        upd();
+        b.addEventListener("levelchange", upd);
+        b.addEventListener("chargingchange", upd);
+      }).catch(() => {});
+    }
+
+    function batterySvg(level, charging, saver) {
+      const color = saver ? "#ffd54f" : (level < 0.2 && !charging) ? "#ff5252" : "#fff";
+      const innerH = 14.2 * Math.max(0.04, level);
+      return '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+        '<rect x="10" y="2" width="4" height="2" rx=".6" fill="' + color + '"/>' +
+        '<rect x="7" y="4" width="10" height="17" rx="1.6" fill="none" stroke="' + color + '" stroke-width="1.6"/>' +
+        '<rect x="8.4" y="' + (19.6 - innerH).toFixed(2) + '" width="7.2" height="' + innerH.toFixed(2) + '" fill="' + color + '"/>' +
+        (charging ? '<path d="M13 8l-3.2 5H12v4l3.2-5H13z" fill="#1b1b1b"/>' : '') +
+        '</svg>';
+    }
+
+    function renderStatusBar() {
+      const parts = [];
+      if (settings.dnd) parts.push(svg("dnd"));
+      if (settings.bluetooth) parts.push(svg("bluetooth"));
+      if (settings.wifi && navigator.onLine) parts.push(svg("wifi"));
+      parts.push(svg("signal"));
+      parts.push('<span class="sb-batt">' + batterySvg(battery.level, battery.charging, settings.batterySaver) +
+                 '<span class="pct">' + Math.round(battery.level * 100) + '%</span></span>');
+      sbRight.innerHTML = parts.join("");
+    }
+
+    const QS = [
+      { key: "wifi",         icon: "wifi",      name: "Wi-Fi",            sub: on => on ? (navigator.onLine ? "Connecté" : "Aucun réseau") : "Désactivé" },
+      { key: "bluetooth",    icon: "bluetooth", name: "Bluetooth",        sub: on => on ? "Activé" : "Désactivé" },
+      { key: "dnd",          icon: "dnd",       name: "Ne pas déranger",  sub: on => on ? "Activé" : "Désactivé" },
+      { key: "batterySaver", icon: "saver",     name: "Éco. de batterie", sub: on => on ? "Activé" : "Désactivé" }
+    ];
+
+    function buildQuickSettings() {
+      QS.forEach(t => {
+        const b = document.createElement("button");
+        b.className = "qs-tile";
+        b.dataset.key = t.key;
+        b.innerHTML = svg(t.icon) + '<span class="qs-text"><span class="qs-name"></span><span class="qs-sub"></span></span>';
+        b.querySelector(".qs-name").textContent = t.name;
+        b.addEventListener("click", () => {
+          settings[t.key] = !settings[t.key];
+          saveSettings();
+          applySystem();
+          postToSettings();
+        });
+        qsTiles.appendChild(b);
+      });
+    }
+
+    function renderQuickSettings() {
+      qsTiles.querySelectorAll(".qs-tile").forEach(b => {
+        const t = QS.find(x => x.key === b.dataset.key);
+        const on = !!settings[t.key];
+        b.setAttribute("aria-pressed", String(on));
+        b.querySelector(".qs-sub").textContent = t.sub(on);
+      });
+      qsBrightness.value = String(settings.brightness);
+    }
+
+    // Applique les réglages au système : luminosité, icônes d'état, volets rapides
+    function applySystem() {
+      dim.style.opacity = String(((100 - settings.brightness) / 100) * 0.8);
+      renderStatusBar();
+      renderQuickSettings();
+    }
+
+    // Réglage modifié depuis le tiroir : on prévient l'app Paramètres si elle est ouverte
+    function postToSettings() {
+      const w = wins.settings;
+      if (w && w.frame.contentWindow) {
+        w.frame.contentWindow.postMessage({ type: "tw-settings-state", state: settings }, "*");
+      }
+    }
+
+    buildQuickSettings();
+    qsBrightness.addEventListener("input", () => {
+      settings.brightness = sanitizeSetting("brightness", Number(qsBrightness.value));
+      saveSettings();
+      applySystem();
+      postToSettings();
+    });
+    window.addEventListener("online", applySystem);
+    window.addEventListener("offline", applySystem);
 
     /* ===== Dock, notifications, tiroir ===== */
     function renderDock() {
@@ -1441,7 +1757,24 @@
     function updateNotifications() {
       renderDock();
       notifTermux.style.display = openApps.termux ? "flex" : "none";
-      notificationEmpty.style.display = openApps.termux ? "none" : "flex";
+      notifX11.style.display = x11.started ? "flex" : "none";
+      notificationEmpty.style.display = (openApps.termux || x11.started) ? "none" : "flex";
+      const n = x11.apps.length;
+      notifX11Sub.textContent = n ? n + " application" + (n > 1 ? "s" : "") + " en cours" : "Aucune application en cours";
+      renderNotifIcons();
+    }
+
+    // Icônes des notifications actives dans la barre d'état
+    function renderNotifIcons() {
+      sbNotifs.textContent = "";
+      const add = (src) => {
+        const i = document.createElement("img");
+        i.alt = "";
+        i.src = src;
+        sbNotifs.appendChild(i);
+      };
+      if (openApps.termux) add("./com.termux/ic_launcher.png");
+      if (x11.started) add("./com.termux.wayland/ic_launcher.webp");
     }
 
     function setDrawer(open) {
@@ -1455,12 +1788,15 @@
 
     /* ===== Cycle de vie des apps natives ===== */
     function showApp(key) {
+      const wasVisible = !!wins[key] && shown[key] && activeApp === key &&
+                         !recentsOverlay.classList.contains("open");
       recentsOverlay.classList.remove("open");
       setDrawer(false);
       activeApp = key;
       activeX = null;
       shown[key] = true;
       renderWindows();
+      if (!wasVisible && wins[key]) animateIn(wins[key]);
     }
 
     function openApp(key) {
@@ -1506,15 +1842,34 @@
 
     function renderRecents() {
       let any = false;
+      const n = x11.apps.length;
+      const previews = {
+        xwayland: x11.started ? "Session Wayland · " + n + " app" + (n > 1 ? "s" : "") : "Aucune session",
+        termux: "~$",
+        settings: "Paramètres"
+      };
       for (const key in APPS) {
         APPS[key].card.style.display = openApps[key] ? "flex" : "none";
         if (openApps[key]) any = true;
+        const pv = APPS[key].card.querySelector(".recent-card-preview");
+        pv.textContent = previews[key];
+        pv.style.background = APPS[key].bar;
+        pv.style.fontFamily = key === "settings" ? "inherit" : "monospace";
+        pv.style.fontSize = key === "termux" ? "20px" : "13px";
       }
       noRecentsMsg.style.display = any ? "none" : "block";
     }
 
     // Actions dans la notification Termux
     notifExit.addEventListener("click", () => closeAppTask("termux"));
+
+    // Notification de la session Wayland
+    notifX11Open.addEventListener("click", () => openApp("xwayland"));
+    notifX11Stop.addEventListener("click", () => {
+      endSession();
+      notifyTermux({ type: "tw-termux-idle" });   // le processus au premier plan est tué : le prompt revient
+    });
+    drawerSettings.addEventListener("click", () => openApp("settings"));
 
     notifWakelock.addEventListener("click", () => {
       wakelockAcquired = !wakelockAcquired;
@@ -1633,13 +1988,18 @@
       const timeText = [now.getHours(), now.getMinutes()].map(v => String(v).padStart(2, "0")).join(":");
       document.getElementById("digitalTime").textContent = timeText;
       drawerTime.textContent = timeText;
+      sbTime.textContent = timeText;
 
       // Date dynamique en anglais
       const options = { weekday: 'short', day: 'numeric', month: 'short' };
-      document.getElementById("digitalDate").textContent = now.toLocaleDateString('en-US', options);
+      const dateText = now.toLocaleDateString('en-US', options);
+      document.getElementById("digitalDate").textContent = dateText;
+      drawerDate.textContent = dateText;
     }
 
     loadSettings();
+    applySystem();
+    updateNotifications();
     updateClock();
     setInterval(updateClock, 1000);
   </script>
