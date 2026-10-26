@@ -16,49 +16,93 @@
             font-family: monospace;
         }
 
-        /* ----- Aucune session ----- */
+        /* ----- Aucune session : écran d'attente façon Termux:X11 ----- */
         #nosession {
             height: 100%;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
             padding: 24px;
-            text-align: center;
         }
-        #nosession .title { font-size: 20px; }
-        #nosession .hint { font-size: 14px; color: rgba(255,255,255,.65); }
+        .boot { display: flex; flex-direction: column; gap: 8px; max-width: 520px; font-size: 14px; line-height: 1.5; }
+        .boot .title { font-size: 20px; margin-bottom: 6px; }
+        .boot .dim { color: rgba(255,255,255,.45); font-size: 12px; }
+        .boot .hint { color: rgba(255,255,255,.7); }
+        .dots::after { content: ""; animation: dots 1.4s steps(1) infinite; }
+        @keyframes dots {
+            0%   { content: ""; }
+            25%  { content: "."; }
+            50%  { content: ".."; }
+            75%  { content: "..."; }
+        }
+        .cursor { width: 9px; height: 17px; background: #fff; animation: blink 1s steps(1) infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
         code { background: rgba(255,255,255,.12); padding: 2px 6px; border-radius: 4px; }
 
-        /* ----- Bureau ----- */
+        /* ----- Bureau (session active) ----- */
         #desktop {
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 8px 4px;
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at 18% 12%, rgba(233, 84, 32, .30) 0%, transparent 48%),
+                radial-gradient(ellipse at 88% 92%, rgba(119, 33, 111, .60) 0%, transparent 58%),
+                linear-gradient(160deg, #3a0a2e 0%, #2c001e 55%, #1a0013 100%);
+        }
+        .icons {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-auto-flow: column;
+            grid-template-rows: repeat(auto-fill, 104px);
+            grid-auto-columns: 100px;
+            gap: 6px;
+            align-content: start;
             padding: 16px;
         }
 
         .icon {
-            width: 92px;
+            width: 100px;
+            height: 100px;
             padding: 8px 4px;
-            border: 0;
-            border-radius: 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
             background: transparent;
             color: #fff;
             font: inherit;
-            font-size: 13px;
+            font-family: "Ubuntu", "Cantarell", Arial, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.25;
             text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
             cursor: pointer;
+            transition: background .12s ease, border-color .12s ease;
         }
-        .icon:hover, .icon:focus-visible { background: rgba(255,255,255,.14); outline: none; }
+        .icon:hover { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .10); }
+        .icon:focus-visible { outline: none; background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .35); }
         .icon img {
             display: block;
             width: 56px;
             height: 56px;
             margin: 0 auto 6px;
             object-fit: contain;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .45));
+        }
+        .icon.launching img { animation: launch .55s ease; }
+        @keyframes launch {
+            0%   { transform: translateY(0) scale(1); }
+            30%  { transform: translateY(-9px) scale(1.06); }
+            60%  { transform: translateY(0) scale(.96); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        #info {
+            position: absolute;
+            right: 14px;
+            bottom: 10px;
+            font-size: 11.5px;
+            color: rgba(255, 255, 255, .42);
+            pointer-events: none;
         }
 
         /* Sans fenêtres libres : affichage des applications comme dans Termux:X11
@@ -104,16 +148,24 @@
 </head>
 <body>
     <div id="nosession">
-        <div class="title">Aucune session Wayland</div>
-        <div class="hint">Lancez <code>wayland --start</code> dans Termux</div>
+        <div class="boot">
+            <div class="title">Termux XWayland</div>
+            <div class="dim">DISPLAY=:0 &nbsp; WAYLAND_DISPLAY=wayland-0</div>
+            <div>En attente d'un compositeur Wayland<span class="dots"></span></div>
+            <div class="hint">Lancez <code>wayland --start</code> dans Termux</div>
+            <div class="cursor"></div>
+        </div>
     </div>
 
     <main id="desktop" hidden>
-        <button class="icon" data-app="firefox"><img src="../com.termux/firefox.png" alt="">Firefox</button>
-        <button class="icon" data-app="nautilus"><img src="../com.termux/nautilus.png" alt="">Fichiers</button>
-        <button class="icon" data-app="trash"><img src="../com.termux/trash.png" alt="">Corbeille</button>
-        <button class="icon" data-app="libreoffice"><img src="../com.termux/libreoffice-main.png" alt="">LibreOffice</button>
-        <button class="icon" data-app="editor"><img src="../com.termux/text-editor.png" alt="">Éditeur de texte</button>
+        <div class="icons">
+            <button class="icon" data-app="firefox"><img src="../com.termux/firefox.png" alt="">Firefox</button>
+            <button class="icon" data-app="nautilus"><img src="../com.termux/nautilus.png" alt="">Fichiers</button>
+            <button class="icon" data-app="trash"><img src="../com.termux/trash.png" alt="">Corbeille</button>
+            <button class="icon" data-app="libreoffice"><img src="../com.termux/libreoffice-main.png" alt="">LibreOffice</button>
+            <button class="icon" data-app="editor"><img src="../com.termux/text-editor.png" alt="">Éditeur de texte</button>
+        </div>
+        <div id="info"></div>
     </main>
 
     <div id="xdisplay" hidden></div>
@@ -128,6 +180,7 @@
         var nosession = document.getElementById("nosession");
         var desktop = document.getElementById("desktop");
         var xdisplay = document.getElementById("xdisplay");
+        var info = document.getElementById("info");
         var toast = document.getElementById("toast");
         var toastTimer = null;
         var nextId = 1;
@@ -139,6 +192,13 @@
             clearTimeout(toastTimer);
             toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 3200);
         }
+
+        // Informations d'affichage, comme dans les préférences de Termux:X11
+        function updateInfo() {
+            info.textContent = "wayland-0 \u00B7 DISPLAY :0 \u00B7 " + window.innerWidth + "\u00D7" + window.innerHeight;
+        }
+        window.addEventListener("resize", updateInfo);
+        updateInfo();
 
         var SHOTS = {
             firefox:     { src: "./firefox.png",            title: "Firefox" },
@@ -196,17 +256,23 @@
             }
         });
 
-        function launch(app) {
+        function launch(btn) {
+            // retour visuel : l'icône rebondit pendant le lancement
+            btn.classList.remove("launching");
+            void btn.offsetWidth;
+            btn.classList.add("launching");
+            setTimeout(function () { btn.classList.remove("launching"); }, 600);
+
             if (!embedded) { showToast(message("no-launcher")); return; }
             var id = nextId++;
             pending[id] = function (res) { if (!res.ok) showToast(message(res.code)); };
             setTimeout(function () { delete pending[id]; }, 1500);
-            window.parent.postMessage({ type: "tw-x11", id: id, action: "launch", app: app }, "*");
+            window.parent.postMessage({ type: "tw-x11", id: id, action: "launch", app: btn.dataset.app }, "*");
         }
 
         desktop.addEventListener("click", function (e) {
             var btn = e.target.closest(".icon");
-            if (btn) launch(btn.dataset.app);
+            if (btn) launch(btn);
         });
 
         if (embedded) window.parent.postMessage({ type: "tw-x11-get" }, "*");
