@@ -7,11 +7,53 @@
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+        /* ---------- Thèmes : clair par défaut, sombre en option ---------- */
+        :root {
+            color-scheme: light;
+            --bg: #f6f8fc;
+            --text: #1b1c1f;
+            --text2: rgba(0, 0, 0, .62);
+            --text3: rgba(0, 0, 0, .45);
+            --text4: rgba(0, 0, 0, .55);
+            --hover: rgba(0, 0, 0, .05);
+            --hover2: rgba(0, 0, 0, .08);
+            --accent: #0b57d0;
+            --on-accent: #ffffff;
+            --icon-bg: #d3e3fd;
+            --surface: #e9eef6;
+            --switch-off: #74777f;
+            --master-bg: #dde3ea;
+            --snack-bg: #303134;
+            --snack-text: #ffffff;
+            --meter-track: #d3dbe5;
+            --search-icon: #5f6368;
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #303030;
+            --text: #e3e3e3;
+            --text2: rgba(255, 255, 255, .62);
+            --text3: rgba(255, 255, 255, .45);
+            --text4: rgba(255, 255, 255, .55);
+            --hover: rgba(255, 255, 255, .05);
+            --hover2: rgba(255, 255, 255, .10);
+            --accent: #a8c7fa;
+            --on-accent: #062e6f;
+            --icon-bg: #3e636d;
+            --surface: #3a3f45;
+            --switch-off: #8e918f;
+            --master-bg: #3e4a52;
+            --snack-bg: #e3e3e3;
+            --snack-text: #1b1b1b;
+            --meter-track: #4a4f55;
+            --search-icon: #c4c7c5;
+        }
+
         html, body { margin: 0; min-height: 100%; }
 
         body {
-            background: #303030;
-            color: #e3e3e3;
+            background: var(--bg);
+            color: var(--text);
             font-family: Roboto, "Segoe UI", Arial, Helvetica, sans-serif;
             padding-bottom: 80px;
         }
@@ -26,7 +68,7 @@
             gap: 6px;
             min-height: 64px;
             padding: 8px 12px 8px 16px;
-            background: #303030;
+            background: var(--bg);
         }
 
         .appbar h1 {
@@ -44,18 +86,18 @@
             border: 0;
             border-radius: 50%;
             background: transparent;
-            color: #e3e3e3;
+            color: var(--text);
             font-size: 24px;
             cursor: pointer;
         }
-        .icon-btn:hover { background: rgba(255,255,255,.1); }
+        .icon-btn:hover { background: var(--hover2); }
 
         /* ---------- Lignes ---------- */
         .section-label {
             padding: 20px 24px 6px;
             font-size: 14px;
             font-weight: 500;
-            color: #a8c7fa;
+            color: var(--accent);
         }
 
         .row {
@@ -71,8 +113,8 @@
             text-align: left;
             cursor: pointer;
         }
-        .row:hover { background: rgba(255,255,255,.05); }
-        .row:focus-visible { outline: 2px solid #a8c7fa; outline-offset: -2px; }
+        .row:hover { background: var(--hover); }
+        .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         .row.static { cursor: default; }
         .row.static:hover { background: transparent; }
         .row.disabled { opacity: .42; pointer-events: none; }
@@ -81,7 +123,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #3e636d;
+            background: var(--icon-bg);
             display: grid;
             place-items: center;
             font-size: 20px;
@@ -94,10 +136,10 @@
             margin-top: 2px;
             font-size: 14px;
             line-height: 1.35;
-            color: rgba(255,255,255,.62);
+            color: var(--text2);
             overflow-wrap: anywhere;
         }
-        .row .chevron { color: rgba(255,255,255,.45); font-size: 20px; }
+        .row .chevron { color: var(--text3); font-size: 20px; }
 
         /* ---------- Interrupteur ---------- */
         .switch {
@@ -105,7 +147,7 @@
             width: 52px;
             height: 32px;
             flex-shrink: 0;
-            border: 2px solid #8e918f;
+            border: 2px solid var(--switch-off);
             border-radius: 16px;
             transition: background .18s ease, border-color .18s ease;
         }
@@ -117,16 +159,16 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #8e918f;
+            background: var(--switch-off);
             transform: translateY(-50%);
             transition: left .18s ease, width .18s ease, height .18s ease, background .18s ease;
         }
-        .row[aria-checked="true"] .switch { background: #a8c7fa; border-color: #a8c7fa; }
+        .row[aria-checked="true"] .switch { background: var(--accent); border-color: var(--accent); }
         .row[aria-checked="true"] .switch::after {
             left: 24px;
             width: 24px;
             height: 24px;
-            background: #062e6f;
+            background: var(--on-accent);
         }
 
         /* ---------- Bandeau principal (options développeur) ---------- */
@@ -137,14 +179,14 @@
             margin: 8px 16px 4px;
             padding: 18px 24px;
             border-radius: 28px;
-            background: #3e4a52;
+            background: var(--master-bg);
             font-size: 18px;
             font-weight: 500;
             cursor: pointer;
         }
-        .master[aria-checked="true"] { background: #a8c7fa; color: #062e6f; }
-        .master[aria-checked="true"] .switch { background: #062e6f; border-color: #062e6f; }
-        .master[aria-checked="true"] .switch::after { left: 24px; width: 24px; height: 24px; background: #a8c7fa; }
+        .master[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+        .master[aria-checked="true"] .switch { background: var(--on-accent); border-color: var(--on-accent); }
+        .master[aria-checked="true"] .switch::after { left: 24px; width: 24px; height: 24px; background: var(--accent); }
 
         /* ---------- Carte appareil ---------- */
         .device {
@@ -157,7 +199,7 @@
         }
         .device .big { font-size: 56px; }
         .device .name { font-size: 22px; }
-        .device .model { font-size: 14px; color: rgba(255,255,255,.62); }
+        .device .model { font-size: 14px; color: var(--text2); }
 
         /* ---------- Message temporaire ---------- */
         #snack {
@@ -168,8 +210,8 @@
             max-width: calc(100% - 32px);
             padding: 12px 20px;
             border-radius: 14px;
-            background: #e3e3e3;
-            color: #1b1b1b;
+            background: var(--snack-bg);
+            color: var(--snack-text);
             font-size: 14px;
             opacity: 0;
             pointer-events: none;
@@ -187,35 +229,35 @@
             margin: 4px 16px 10px;
             padding: 0 18px;
             border-radius: 26px;
-            background: #3a3f45;
+            background: var(--surface);
         }
-        .search svg { width: 22px; height: 22px; fill: #c4c7c5; flex-shrink: 0; }
+        .search svg { width: 22px; height: 22px; fill: var(--search-icon); flex-shrink: 0; }
         .search input {
             flex: 1;
             min-width: 0;
             border: 0;
             outline: 0;
             background: transparent;
-            color: #e3e3e3;
+            color: var(--text);
             font: inherit;
             font-size: 16px;
         }
-        .search-empty { padding: 28px 24px; text-align: center; color: rgba(255,255,255,.55); }
+        .search-empty { padding: 28px 24px; text-align: center; color: var(--text4); }
 
         .row .icon.has-img { background: transparent; }
         .row .icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
 
         .row.slider { cursor: default; }
         .row.slider:hover { background: transparent; }
-        .row.slider input[type="range"] { width: 100%; margin: 10px 0 0; accent-color: #a8c7fa; }
-        .slider-val { min-width: 52px; text-align: right; font-size: 14px; color: rgba(255,255,255,.7); }
+        .row.slider input[type="range"] { width: 100%; margin: 10px 0 0; accent-color: var(--accent); }
+        .slider-val { min-width: 52px; text-align: right; font-size: 14px; color: var(--text2); }
 
         .bigstat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 24px 14px; text-align: center; }
         .bigstat .value { font-size: 56px; font-weight: 300; }
-        .bigstat .caption { font-size: 14px; color: rgba(255,255,255,.62); }
-        .meter { height: 10px; margin: 6px 24px 14px; border-radius: 5px; background: #4a4f55; overflow: hidden; }
-        .meter .fill { height: 100%; border-radius: 5px; background: #a8c7fa; }
-        .hint { padding: 8px 24px 4px; font-size: 13px; line-height: 1.4; color: rgba(255,255,255,.55); }
+        .bigstat .caption { font-size: 14px; color: var(--text2); }
+        .meter { height: 10px; margin: 6px 24px 14px; border-radius: 5px; background: var(--meter-track); overflow: hidden; }
+        .meter .fill { height: 100%; border-radius: 5px; background: var(--accent); }
+        .hint { padding: 8px 24px 4px; font-size: 13px; line-height: 1.4; color: var(--text4); }
     </style>
 </head>
 <body>
@@ -242,7 +284,8 @@
             bluetooth: false,
             dnd: false,           // Ne pas déranger
             batterySaver: false,
-            brightness: 100       // 10 à 100 %
+            brightness: 100,      // 10 à 100 %
+            theme: "light"        // "light" (par défaut) ou "dark"
         };
         var STORAGE_KEY = "tw_settings";
         var state = Object.assign({}, DEFAULTS);
@@ -253,8 +296,10 @@
                 var v = src[k];
                 if (typeof DEFAULTS[k] === "boolean") {
                     if (typeof v === "boolean") state[k] = v;
-                } else if (typeof v === "number" && isFinite(v)) {
-                    state[k] = Math.min(100, Math.max(10, Math.round(v)));
+                } else if (typeof DEFAULTS[k] === "number") {
+                    if (typeof v === "number" && isFinite(v)) state[k] = Math.min(100, Math.max(10, Math.round(v)));
+                } else if (v === "light" || v === "dark") {
+                    state[k] = v;
                 }
             });
         }
@@ -269,7 +314,12 @@
             if (embedded) window.parent.postMessage({ type: "tw-settings-set", state: state }, "*");
         }
 
+        function applyTheme() {
+            document.documentElement.setAttribute("data-theme", state.theme);
+        }
+
         load();
+        applyTheme();
 
         /* ===== Informations réelles du navigateur (asynchrones) ===== */
         var info = { battery: null, storage: null };
@@ -443,6 +493,7 @@
             { t: "Économiseur de batterie", p: "battery", c: "Batterie" },
             { t: "Affichage", p: "display", c: "Paramètres" },
             { t: "Luminosité", p: "display", c: "Affichage", k: "ecran" },
+            { t: "Thème sombre", p: "display", c: "Affichage", k: "theme clair apparence mode nuit couleurs" },
             { t: "Stockage", p: "storage", c: "Paramètres", k: "espace memoire" },
             { t: "Système", p: "system", c: "Paramètres" },
             { t: "Langues et saisie", p: "system", c: "Système" },
@@ -497,7 +548,7 @@
                 row({ icon: "\uD83D\uDCE6", title: "Applications", sub: "Termux, Firefox, LibreOffice\u2026", chevron: true, onClick: function () { go("apps"); } }),
                 row({ icon: "\uD83D\uDD14", title: "Notifications", sub: state.dnd ? "Ne pas déranger activé" : "Aucune restriction", chevron: true, onClick: function () { go("notifications"); } }),
                 row({ icon: "\uD83D\uDD0B", title: "Batterie", sub: b.level + " %" + (b.charging ? " \u00B7 en charge" : ""), chevron: true, onClick: function () { go("battery"); } }),
-                row({ icon: "\uD83D\uDDA5\uFE0F", title: "Affichage", sub: "Luminosité " + state.brightness + " %", chevron: true, onClick: function () { go("display"); } }),
+                row({ icon: "\uD83D\uDDA5\uFE0F", title: "Affichage", sub: (state.theme === "dark" ? "Thème sombre" : "Thème clair") + " \u00B7 luminosité " + state.brightness + " %", chevron: true, onClick: function () { go("display"); } }),
                 row({ icon: "\uD83D\uDCBE", title: "Stockage", sub: info.storage ? fmtBytes(info.storage.usage) + " utilisés" : "Stockage du navigateur", chevron: true, onClick: function () { go("storage"); } }),
                 row({ icon: "\u2699\uFE0F", title: "Système", sub: "Langues, gestes, date et heure" + (state.devUnlocked ? ", options pour les développeurs" : ""),
                       chevron: true, onClick: function () { go("system"); } }),
@@ -591,11 +642,12 @@
             var dpr = window.devicePixelRatio || 1;
             return [
                 sliderRow("Luminosité", state.brightness, function (v) { state.brightness = v; save(); }),
+                switchRow({ title: "Thème sombre", sub: state.theme === "dark" ? "Activé" : "Désactivé (thème clair par défaut)",
+                            checked: state.theme === "dark", onChange: function (v) { setState("theme", v ? "dark" : "light"); } }),
                 label("Écran"),
                 row({ static: true, title: "Résolution", sub: screen.width + " \u00D7 " + screen.height + " px" }),
                 row({ static: true, title: "Densité d'affichage", sub: "\u00D7" + dpr + " (ratio de pixels)" }),
-                row({ static: true, title: "Profondeur de couleur", sub: screen.colorDepth + " bits" }),
-                row({ static: true, title: "Thème", sub: "Sombre" })
+                row({ static: true, title: "Profondeur de couleur", sub: screen.colorDepth + " bits" })
             ];
         }
 
@@ -713,6 +765,7 @@
         };
 
         function render() {
+            applyTheme();
             var current = stack[stack.length - 1];
             // La page développeur n'existe que si elle est débloquée
             if (current === "dev" && !state.devUnlocked) { stack.pop(); current = stack[stack.length - 1]; }

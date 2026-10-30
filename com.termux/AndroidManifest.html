@@ -211,6 +211,13 @@ https://termux.dev/issues
             return true;
         }
 
+        if (args[0] === "exit") {
+            // Termux se ferme et arrête la session Wayland ; seule la fermeture de la fenêtre ne le fait pas
+            if (embedded) window.parent.postMessage({ type: "tw-termux-exit" }, "*");
+            else print("logout");
+            return true;
+        }
+
         if (args[0] === "wayland") {
             if (args.length !== 2 || args[1] !== "--start") {
                 print("Usage: wayland --start");

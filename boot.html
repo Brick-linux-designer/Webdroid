@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,6 +14,11 @@
       --bottom: calc(76px + env(safe-area-inset-bottom, 0px));
       --bar-bg: transparent;            /* couleur de la barre d'état (celle de l'app au premier plan) */
       --nav-bg: rgba(0, 0, 0, .12);     /* couleur de la barre de navigation */
+      --bar-fg: #fff;                   /* texte et icônes de la barre d'état */
+      --nav-fg: #fff;                   /* icônes de la barre de navigation */
+      --bar-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+      --bar-drop: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+      --nav-ripple: rgba(255, 255, 255, .22);
     }
 
     html, body {
@@ -659,14 +664,14 @@
       height: 0;
       border-top: 12px solid transparent;
       border-bottom: 12px solid transparent;
-      border-right: 20px solid #fff;
+      border-right: 20px solid var(--nav-fg);
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
     }
 
     .home-icon {
       width: 23px;
       height: 23px;
-      background: #fff;
+      background: var(--nav-fg);
       border-radius: 50%;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
     }
@@ -674,7 +679,7 @@
     .recent-icon {
       width: 21px;
       height: 21px;
-      background: #fff;
+      background: var(--nav-fg);
       border-radius: 3px;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
     }
@@ -691,12 +696,12 @@
       gap: 8px;
       padding: env(safe-area-inset-top, 0px) 16px 0;
       background: var(--bar-bg);
-      color: #fff;
+      color: var(--bar-fg);
       font: inherit;
       font-size: 13px;
       font-weight: 500;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
-      transition: background .2s ease;
+      text-shadow: var(--bar-shadow);
+      transition: background .2s ease, color .2s ease;
     }
     .notification-zone.hidden { display: none; }
     .sb-left, .sb-right { display: flex; align-items: center; min-width: 0; }
@@ -705,8 +710,8 @@
     .sb-time { font-variant-numeric: tabular-nums; }
     .sb-notifs { display: flex; align-items: center; gap: 6px; }
     .sb-notifs img { width: 15px; height: 15px; border-radius: 4px; object-fit: contain; }
-    .sb-right svg { width: 16px; height: 16px; fill: #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)); }
-    .sb-batt { display: flex; align-items: center; gap: 1px; }
+    .sb-right svg { width: 16px; height: 16px; fill: var(--bar-fg); filter: var(--bar-drop); }
+    .sb-batt { display: flex; align-items: center; gap: 1px; color: var(--bar-fg); }
     .sb-batt svg { width: 15px; height: 17px; }
     .sb-batt .pct { font-size: 12px; }
 
@@ -772,7 +777,7 @@
       background: rgba(255, 255, 255, 0);
       transition: background .15s ease;
     }
-    .nav-button:active::before { background: rgba(255, 255, 255, .22); }
+    .nav-button:active::before { background: var(--nav-ripple); }
 
     /* ===== Fenêtres libres : décoration façon Ubuntu (Yaru) ===== */
     .app-window.floating .win-bar { padding: 0 10px 0 100px; background: #2b2b2b; }
@@ -794,6 +799,32 @@
     @keyframes win-unmin { from { opacity: 0; transform: translate(var(--mx), var(--my)) scale(.08); } to { opacity: 1; transform: none; } }
     .app-window.anim-min   { animation: win-min .22s cubic-bezier(.4, 0, .8, .4) forwards; }
     .app-window.anim-unmin { animation: win-unmin .24s cubic-bezier(.2, .8, .2, 1); }
+
+    /* ===== Thème clair (par défaut) : surfaces système ===== */
+    html[data-theme="light"] .notification-drawer { background: rgba(244, 246, 250, .96); color: #1b1c1f; box-shadow: 0 12px 35px rgba(0, 0, 0, .22); }
+    html[data-theme="light"] .drawer-handle { background: rgba(0, 0, 0, .28); }
+    html[data-theme="light"] .close-drawer,
+    html[data-theme="light"] .drawer-gear { background: rgba(0, 0, 0, .08); color: #1b1c1f; }
+    html[data-theme="light"] .drawer-gear svg { fill: #1b1c1f; }
+    html[data-theme="light"] .qs-tile { background: #e3e8ef; color: #1b1c1f; }
+    html[data-theme="light"] .qs-tile[aria-pressed="true"] { background: #0b57d0; color: #fff; }
+    html[data-theme="light"] .qs-brightness svg { fill: #44474e; }
+    html[data-theme="light"] .qs-brightness input { accent-color: #0b57d0; }
+    html[data-theme="light"] .notification-card { background: #fff; border: 1px solid rgba(0, 0, 0, .06); box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+    html[data-theme="light"] .notification-empty { color: rgba(0, 0, 0, .5); }
+    html[data-theme="light"] .empty-icon { border-color: rgba(0, 0, 0, .28); }
+    html[data-theme="light"] .recents-overlay { background: rgba(236, 240, 246, .80); }
+    html[data-theme="light"] .recent-card { background: rgba(255, 255, 255, .92); border-color: rgba(0, 0, 0, .10); color: #1b1c1f; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); }
+    html[data-theme="light"] .recent-card-close { background: rgba(0, 0, 0, .07); color: #1b1c1f; }
+    html[data-theme="light"] #noRecentsMsg { color: rgba(0, 0, 0, .55) !important; }
+    /* Barres de titre des fenêtres libres (Yaru clair) */
+    html[data-theme="light"] .app-window.floating .win-bar { background: #dcdcdc; }
+    html[data-theme="light"] .app-window.floating.focused .win-bar { background: #ececec; }
+    html[data-theme="light"] .app-window.floating .win-title { color: #6b6b6b; }
+    html[data-theme="light"] .app-window.floating.focused .win-title { color: #2a2a2a; }
+    html[data-theme="light"] .win-btn { color: #2a2a2a; background: rgba(0, 0, 0, .08); }
+    html[data-theme="light"] .win-btn:hover { background: rgba(0, 0, 0, .16); }
+    html[data-theme="light"] .win-btn.close:hover { background: #e95420; color: #fff; }
 
     @media (max-height: 650px) {
       .content { gap: 14px; padding-bottom: 88px; }
@@ -1082,7 +1113,8 @@
     const SETTING_DEFAULTS = {
       devUnlocked: false, devOn: false, usbDebug: false, stayAwake: false, freeform: false,
       wifi: true, bluetooth: false, dnd: false, batterySaver: false,
-      brightness: 100                       // 10 à 100 %
+      brightness: 100,                      // 10 à 100 %
+      theme: "light"                        // "light" (par défaut) ou "dark"
     };
     const SETTING_KEYS = Object.keys(SETTING_DEFAULTS);
     const settings = Object.assign({}, SETTING_DEFAULTS);
@@ -1092,6 +1124,7 @@
       const t = typeof SETTING_DEFAULTS[k];
       if (t === "boolean") return typeof v === "boolean" ? v : undefined;
       if (t === "number") return (typeof v === "number" && isFinite(v)) ? Math.min(100, Math.max(10, Math.round(v))) : undefined;
+      if (t === "string") return (v === "light" || v === "dark") ? v : undefined;
       return undefined;
     }
 
@@ -1205,7 +1238,9 @@
           applyMode();
         }
       } else if (src === "termux" || src === "xwayland") {
-        if (src === "termux" && d.type === "tw-termux-ready") {
+        if (src === "termux" && d.type === "tw-termux-exit") {
+          setTimeout(killTermux, 0);   // commande "exit" saisie dans Termux
+        } else if (src === "termux" && d.type === "tw-termux-ready") {
           termuxReady = true;
           if (pendingCmd) {
             notifyTermux({ type: "tw-termux-run", cmd: pendingCmd.cmd, animate: pendingCmd.animate });
@@ -1298,10 +1333,17 @@
       }
       dock.style.display = (!recents && !activeApp) ? "flex" : "none";
       // Les barres d'état et de navigation prennent la couleur de l'application au premier plan
-      const barApp = (!recents && activeApp) ? APPS[activeApp] : null;
+      const b = (!recents && activeApp) ? barOf(activeApp) : null;
       const rs = document.documentElement.style;
-      rs.setProperty("--bar-bg", barApp ? barApp.bar : "transparent");
-      rs.setProperty("--nav-bg", barApp ? barApp.bar : "rgba(0, 0, 0, .12)");
+      const dark = !!(b && b.dark);
+      rs.setProperty("--bar-bg", b ? b.bg : "transparent");
+      rs.setProperty("--nav-bg", b ? b.bg : "rgba(0, 0, 0, .12)");
+      rs.setProperty("--bar-fg", dark ? "#1b1c1f" : "#fff");
+      rs.setProperty("--nav-fg", dark ? "#1b1c1f" : "#fff");
+      rs.setProperty("--bar-shadow", dark ? "none" : "0 1px 3px rgba(0, 0, 0, .55)");
+      rs.setProperty("--bar-drop", dark ? "none" : "drop-shadow(0 1px 2px rgba(0, 0, 0, .5))");
+      rs.setProperty("--nav-ripple", dark ? "rgba(0, 0, 0, .14)" : "rgba(255, 255, 255, .22)");
+      if (dark !== sysFgDark) { sysFgDark = dark; renderStatusBar(); }
       renderDock();
     }
 
@@ -1606,6 +1648,16 @@
     });
 
     /* ===== Barre d'état, volets rapides, luminosité ===== */
+    let sysFgDark = false;   // barre d'état sur fond clair : texte et icônes foncés
+
+    // Couleur des barres système pour l'application au premier plan
+    function barOf(key) {
+      if (key === "settings") {
+        return settings.theme === "light" ? { bg: "#f6f8fc", dark: true } : { bg: "#303030", dark: false };
+      }
+      return { bg: "#000000", dark: false };
+    }
+
     const ICONS = {
       wifi: "M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z",
       signal: "M2 22h20V2z",
@@ -1627,13 +1679,15 @@
     }
 
     function batterySvg(level, charging, saver) {
-      const color = saver ? "#ffd54f" : (level < 0.2 && !charging) ? "#ff5252" : "#fff";
+      const color = saver ? (sysFgDark ? "#f9a825" : "#ffd54f")
+                  : (level < 0.2 && !charging) ? (sysFgDark ? "#d93025" : "#ff5252")
+                  : "currentColor";
       const innerH = 14.2 * Math.max(0.04, level);
       return '<svg viewBox="0 0 24 24" aria-hidden="true">' +
         '<rect x="10" y="2" width="4" height="2" rx=".6" fill="' + color + '"/>' +
         '<rect x="7" y="4" width="10" height="17" rx="1.6" fill="none" stroke="' + color + '" stroke-width="1.6"/>' +
         '<rect x="8.4" y="' + (19.6 - innerH).toFixed(2) + '" width="7.2" height="' + innerH.toFixed(2) + '" fill="' + color + '"/>' +
-        (charging ? '<path d="M13 8l-3.2 5H12v4l3.2-5H13z" fill="#1b1b1b"/>' : '') +
+        (charging ? '<path d="M13 8l-3.2 5H12v4l3.2-5H13z" fill="' + (sysFgDark ? "#fff" : "#1b1b1b") + '"/>' : '') +
         '</svg>';
     }
 
@@ -1684,7 +1738,9 @@
 
     // Applique les réglages au système : luminosité, icônes d'état, volets rapides
     function applySystem() {
+      document.documentElement.setAttribute("data-theme", settings.theme);
       dim.style.opacity = String(((100 - settings.brightness) / 100) * 0.8);
+      renderWindows();          // couleurs des barres système (Paramètres suit le thème)
       renderStatusBar();
       renderQuickSettings();
     }
@@ -1756,9 +1812,10 @@
 
     function updateNotifications() {
       renderDock();
-      notifTermux.style.display = openApps.termux ? "flex" : "none";
+      const termuxAlive = !!wins.termux;   // le shell tourne même si sa fenêtre est fermée
+      notifTermux.style.display = termuxAlive ? "flex" : "none";
       notifX11.style.display = x11.started ? "flex" : "none";
-      notificationEmpty.style.display = (openApps.termux || x11.started) ? "none" : "flex";
+      notificationEmpty.style.display = (termuxAlive || x11.started) ? "none" : "flex";
       const n = x11.apps.length;
       notifX11Sub.textContent = n ? n + " application" + (n > 1 ? "s" : "") + " en cours" : "Aucune application en cours";
       renderNotifIcons();
@@ -1773,7 +1830,7 @@
         i.src = src;
         sbNotifs.appendChild(i);
       };
-      if (openApps.termux) add("./com.termux/ic_launcher.png");
+      if (wins.termux) add("./com.termux/ic_launcher.png");
       if (x11.started) add("./com.termux.wayland/ic_launcher.webp");
     }
 
@@ -1818,7 +1875,37 @@
       renderWindows();
     }
 
+    // Termux est un service : fermer sa fenêtre (récents) ne tue ni son shell ni la session Wayland.
+    // Il ne s'arrête que par la commande "exit" ou le bouton Exit de sa notification.
+    function killTermux() {
+      openApps.termux = false;
+      if (wins.termux) {
+        wins.termux.el.remove();
+        delete wins.termux;
+      }
+      delete shown.termux;
+      if (activeApp === "termux") activeApp = null;
+      wakelockAcquired = false;
+      notifWakelock.textContent = "Acquire wakelock";
+      termuxReady = false;
+      pendingCmd = null;
+      endSession();            // la session Wayland et ses applications s'arrêtent avec Termux
+      renderWindows();
+      renderRecents();
+      updateNotifications();
+    }
+
     function closeAppTask(key) {
+      if (key === "termux" && wins.termux) {
+        openApps.termux = false;     // disparaît des récents, le shell continue en arrière-plan
+        shown.termux = false;
+        if (activeApp === "termux") activeApp = null;
+        renderWindows();
+        renderRecents();
+        updateNotifications();
+        return;
+      }
+
       openApps[key] = false;
       if (wins[key]) {
         wins[key].el.remove();
@@ -1826,14 +1913,6 @@
       }
       delete shown[key];
       if (activeApp === key) activeApp = null;
-
-      if (key === "termux") {
-        wakelockAcquired = false;
-        notifWakelock.textContent = "Acquire wakelock";
-        termuxReady = false;
-        pendingCmd = null;
-        endSession();   // fermer Termux arrête la session Wayland et ses fenêtres
-      }
 
       renderWindows();
       renderRecents();
@@ -1853,7 +1932,9 @@
         if (openApps[key]) any = true;
         const pv = APPS[key].card.querySelector(".recent-card-preview");
         pv.textContent = previews[key];
-        pv.style.background = APPS[key].bar;
+        const bo = barOf(key);
+        pv.style.background = bo.bg;
+        pv.style.color = bo.dark ? "rgba(0, 0, 0, .6)" : "rgba(255, 255, 255, .6)";
         pv.style.fontFamily = key === "settings" ? "inherit" : "monospace";
         pv.style.fontSize = key === "termux" ? "20px" : "13px";
       }
@@ -1861,7 +1942,10 @@
     }
 
     // Actions dans la notification Termux
-    notifExit.addEventListener("click", () => closeAppTask("termux"));
+    notifExit.addEventListener("click", killTermux);
+    // Toucher une notification ouvre l'application correspondante
+    notifTermux.addEventListener("click", (e) => { if (!e.target.closest("button")) openApp("termux"); });
+    notifX11.addEventListener("click", (e) => { if (!e.target.closest("button")) openApp("xwayland"); });
 
     // Notification de la session Wayland
     notifX11Open.addEventListener("click", () => openApp("xwayland"));
